@@ -68,15 +68,19 @@ class _f_2(layers.Layer):
     
 class _Df_1(layers.Layer):
     def call(self, x, y):
+        out = x*x - y*y
         dx = 2*x
         dy = -2*y
-        return tf.stack([dx, dy], axis=1)
+        grad = tf.stack([dx, dy], axis=1)
+        return out, grad
 
 class _Df_2(layers.Layer):
     def call(self, x, y):
+        out = x*x + 0.5*y*y
         dx = 2*x
         dy = 1*y
-        return tf.stack([dx, dy], axis=1)
+        grad = tf.stack([dx, dy], axis=1)
+        return out, grad
 
 # %%   
 """
@@ -84,18 +88,25 @@ main: construction of the NN model
 
 """
 
-def main(in_shape=1, model_type='NN', **kwargs):
+def compile_NN(in_shape=1, **kwargs):
     # define input shape
     xs = tf.keras.Input(shape=[in_shape])
     # define which (custom) layers the model uses
-    if model_type == 'NN':
-        ys = _NN(**kwargs)(xs)
-    elif model_type == 'DNN':
-        ys = _DNN(**kwargs)(xs)
-    else:
-        raise ValueError(f'Model type "{model_type}" unknown')
+    ys = _NN(**kwargs)(xs)
     # connect input and output
-    model = tf.keras.Model(inputs = [xs], outputs = [ys])
+    model = tf.keras.Model(inputs = xs, outputs = ys)
     # define optimizer and loss function
     model.compile('adam', 'mse')
     return model
+
+def compile_DNN(in_shape=1, loss_weights=[1,1], **kwargs):
+    # define input shape
+    xs = tf.keras.Input(shape=[in_shape])
+    # define which (custom) layers the model uses
+    out, grad = _DNN(**kwargs)(xs)
+    # connect input and output
+    model = tf.keras.Model(inputs = xs, outputs = [out, grad])
+    # define optimizer and loss function
+    model.compile('adam', 'mse', loss_weights=loss_weights)
+    return model
+

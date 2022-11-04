@@ -26,7 +26,8 @@ Generate data for a bathtub function
 """
 
 def plot_data_3D(X, Y, Z):
-    ax = plt.axes(projection='3d')
+    fig1 = plt.figure(figsize=(8,5), dpi=300)
+    ax = fig1.add_subplot(projection='3d')
     ax.plot_surface(X, Y, Z)
     ax.set_xlabel('x')
     ax.set_ylabel('y')
@@ -56,20 +57,22 @@ def bathtub():
     
     return xs, ys, xs_c, ys_c
 
-def data_2D(func, x=np.linspace(-4, 4, 20), y=np.linspace(-4, 4, 20), plot=True):
+def data_2D(func, x=np.linspace(-4, 4, 20, dtype=np.float32), y=np.linspace(-4, 4, 20, dtype=np.float32), plot=True):
     X, Y = np.meshgrid(x, y)
     p = np.stack([X.flatten(), Y.flatten()], axis=1)
     f = func(X.flatten(), Y.flatten())
-    f = np.array(f)
-    Z = f.reshape(X.shape)
+    Z = tf.reshape(f, X.shape)
     if plot: 
         plot_data_3D(X, Y, Z)
         
     return p, f, X, Y, Z
 
-def gradient_2D(func, x=np.linspace(-4, 4, 20), y=np.linspace(-4, 4, 20)):
+def gradient_2D(func, x=np.linspace(-4, 4, 20, dtype=np.float32), y=np.linspace(-4, 4, 20, dtype=np.float32), plot=True):
     X, Y = np.meshgrid(x, y)
-    f = func(X.flatten(), Y.flatten())
-    f = np.array(f)
+    p = np.stack([X.flatten(), Y.flatten()], axis=1)
+    f, g = func(X.flatten(), Y.flatten())
+    Z = tf.reshape(f, X.shape)
+    if plot: 
+        plot_data_3D(X, Y, Z)
     
-    return f
+    return p, f, g, X, Y, Z
