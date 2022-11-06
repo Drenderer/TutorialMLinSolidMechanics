@@ -9,21 +9,13 @@ Authors: Dominik K. Klein
 08/2022
 """
 
-# %%   
-"""
-Import modules
-
-"""
-
+# %% Import modules
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 
-# %%   
-"""
-Generate data for a bathtub function
 
-"""
+# %% Generate data for a bathtub function
 
 def plot_data_3D(X, Y, Z):
     fig1 = plt.figure(figsize=(8,5), dpi=300)
@@ -42,7 +34,6 @@ def bathtub():
                          1+0.1*np.sin(np.linspace(0,3.14,90)), np.ones(60), \
                          np.square(xs[300:450]-7)+1])
     
-        
     xs = xs / 10.0
     ys = ys / 10.0
 

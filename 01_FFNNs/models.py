@@ -10,11 +10,7 @@ Authors: Dominik K. Klein
 """
 
 
-# %%   
-"""
-Import modules
-
-"""
+# %% Import modules
 import tensorflow as tf
 from tensorflow.keras import layers
 from tensorflow.keras.constraints import non_neg
@@ -22,16 +18,14 @@ import datetime
 now = datetime.datetime.now
 
 
-# %%   
-"""
-_x_to_y: custom trainable layer
-
-"""
+# %% _x_to_y: custom trainable layer
 
 class _NN(layers.Layer):
-    def __init__(self, ns=[16, 16], convex=False, activation='softplus'):
+    def __init__(self, ns=[16, 16], convex=False, activation='softplus', non_neg_init=False):
         super().__init__()
         constr = {'kernel_constraint': non_neg()} if convex else {}
+        if non_neg_init:
+            constr['kernel_initializer'] = tf.keras.initializers.RandomNormal(mean=0.04, stddev=0.03)
         # define hidden layers with activation functions
         self.ls = [layers.Dense(ns[0], activation)]
         self.ls += [layers.Dense(n, activation, **constr) for n in ns[1:]]
@@ -55,6 +49,7 @@ class _DNN(tf.keras.Model):
             out = self.NN(x)
         grad = g.gradient(out, x)
         return out, grad    #tf.concat([out, grad], axis=1)
+
 
 # %% Data generating layers
 
@@ -82,11 +77,8 @@ class _Df_2(layers.Layer):
         grad = tf.stack([dx, dy], axis=1)
         return out, grad
 
-# %%   
-"""
-main: construction of the NN model
 
-"""
+# %% main: construction of the NN model
 
 def compile_NN(in_shape=1, **kwargs):
     # define input shape
