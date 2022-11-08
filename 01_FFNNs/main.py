@@ -29,7 +29,7 @@ tf.keras.backend.clear_session()
 def activation(x):
     return tf.exp(x)
 
-model = lm.compile_NN(ns=[16,16], activation=activation, convex=False, non_neg_init=False)
+model = lm.compile_NN(ns=[16,16], activation='tanh', convex=True, non_neg_init=False)
 
 
 # %% Load data
@@ -75,14 +75,14 @@ plt.show()
 
 # %% Extra
 
-# xe = tf.expand_dims(tf.linspace(-10, 11, 200), axis=1)
+xe = tf.expand_dims(tf.linspace(-10, 11, 200), axis=1)
 
-# plt.figure(2, dpi=600)
-# plt.scatter(xs_c[::10], ys_c[::10], c='green', label = 'calibration data')
-# plt.plot(xs, ys, c='black', linestyle='--', label='bathtub function')
-# plt.plot(xe, model.predict(xe), label='model', color='red')
-# plt.xlabel('x')
-# plt.ylabel('y')
-# plt.legend()
-# plt.show()
+plt.figure(2, dpi=600)
+plt.scatter(xs_c[::10], ys_c[::10], c='green', label = 'calibration data')
+plt.plot(xs, ys, c='black', linestyle='--', label='bathtub function')
+plt.plot(xe, model.predict(xe), label='model', color='red')
+plt.xlabel('x')
+plt.ylabel('y')
+plt.legend()
+plt.show()
 
