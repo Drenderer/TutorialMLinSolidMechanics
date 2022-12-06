@@ -31,6 +31,11 @@ files = {'biaxial': 'calibration/biaxial.txt',
          'uniaxial': 'calibration/uniaxial.txt',
          'biax_test': 'test/biax_test.txt',
          'mixed_test': 'test/mixed_test.txt'}
+training_files = {'biaxial': 'calibration/biaxial.txt',
+                  'pure_shear': 'calibration/pure_shear.txt',
+                  'uniaxial': 'calibration/uniaxial.txt'}
+test_files = {'biax_test': 'test/biax_test.txt',
+              'mixed_test': 'test/mixed_test.txt'}
 
 # %% Module methods
 
@@ -160,3 +165,54 @@ def read_file(path, plot=False):
     
     return data
 
+def concatenate_data(data_list):
+    d0 = data_list[0]   # First data dict
+    # Check if all dicts have the same keys
+    if not all(x.keys() == d0.keys() for x in data_list):
+        raise ValueError('The data dictionaries dont have all the same keys')
+    
+    data = {}
+    for key, value in d0.items():
+        if isinstance(value, np.ndarray):   # concatenate numpy arrays
+            data[key] = np.concatenate([d[key] for d in data_list])
+        elif all(x[key] == d0[key] for x in data_list): # If all dics have identical key value pair keep it in the final data dict
+            data[key] = value
+            
+    return data
+
+def training_data(plot=False):
+    data = []
+    for name, file in training_files.items():
+        data.append(read_file(file, plot=False))
+        
+    data = concatenate_data(data)
+    
+    if plot:
+        plot_data(data, title='Trainig data')
+        
+    return data
+        
+def test_data(plot=False):
+    data = []
+    for name, file in test_files.items():
+        data.append(read_file(file, plot=False))
+        
+    data = concatenate_data(data)
+    
+    if plot:
+        plot_data(data, title='Test data')
+    
+    return data
+        
+def load_case_data(which='all', plot=False):
+    file_dict = {'all': files,
+                 'train': training_files,
+                 'test': test_files}
+    f = file_dict.get(which)
+    
+    data = []
+    for name, file in f.items():
+        data.append(read_file(file, plot=plot))
+        
+    return data
+    

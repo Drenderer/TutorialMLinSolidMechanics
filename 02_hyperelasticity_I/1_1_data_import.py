@@ -8,4 +8,4 @@ Task 1.1 Data Import
 import data_handler as dh
 
 for file in dh.files.values():
-    dh.read_file(file, True)
+    dh.read_file(file, plot=True)

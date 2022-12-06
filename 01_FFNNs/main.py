@@ -14,8 +14,8 @@ Authors: Dominik K. Klein, Fabian Roth
 # %% Import Modules
 from matplotlib import pyplot as plt
 import tensorflow as tf
-import datetime
-now = datetime.datetime.now
+from datetime import datetime 
+now = datetime.now
 
 # Own modules
 import data as ld
