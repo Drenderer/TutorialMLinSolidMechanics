@@ -116,4 +116,7 @@ def check_stress():
         print('Maximal error for file {:<10} is: {:2e}. Maximal relative error: {:2e}'.format(name, max_abs_error, max_rel_error))
         
 
-        
+# %% Do checks
+check_invariants()
+check_potential()
+check_stress()

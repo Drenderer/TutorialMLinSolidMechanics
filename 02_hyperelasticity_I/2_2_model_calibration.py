@@ -19,11 +19,13 @@ import models_core as mc
 
 # %% Import data
 
-train = dh.training_data(plot=True)     # Data dict
+train_on_lc = ['biaxial', 'pure_shear', 'uniaxial']
+train = dh.load_case_data(train_on_lc, concat=True, plot=True)     # Data dict
+
 test = dh.load_case_data('all')         # List of Loadcase data dicts
 
 # %% Train multiple Models to average the results
-num_models = 2
+num_models = 1
 epochs = 4000
 learning_rate = 0.005
 weighted_load_cases = False
@@ -84,7 +86,7 @@ for t in test:      # loop over test data to get load case names
     avg_losses[load_case_name] = avg_loss
     std_losses[load_case_name] = std_loss
 
-x = np.arange(len(avg_losses))
+x = [0, 1, 2, 3.5, 4.5]
 fig, ax = plt.subplots(dpi=600, figsize=(3,4))
 ax.bar(x, avg_losses.values(), yerr=std_losses.values(), 
        align='center', ecolor='black', capsize=10)
@@ -99,10 +101,19 @@ plt.yscale('log')
 plt.show()
 
 
-# %% Evaluate
-# eval_data = dh.load_case_data(which='test')
-# for t in eval_data:
-#     t['*P'] = np.array(model(t['F']))
-#     del t['W']
-#     dh.plot_data(t)
+# %% Examine the stress / energy prediction of the model in the reference configuration F = I.
 
+tF = tf.constant([np.eye(3)])
+tP = model(tF)
+print(f'For F = I the model predicts: \nP = {tP} \n={np.round(tP,2)}')
+
+# %% Plot an example loadcase
+
+#lc = 'mixed_test'
+for lc in dh.files.keys():
+    lc_test = dh.read_file(dh.files[lc])
+    lc_model = results[0]['model']
+    lc_test['*P'] = lc_model(lc_test['F'])
+    lc_test['*P'] = np.array(lc_test['*P'])
+    del lc_test['F'], lc_test['weight'], lc_test['W']
+    dh.plot_data(lc_test)

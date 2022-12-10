@@ -29,16 +29,19 @@ def get_info_string(loss_weights):
 
 
 # %% Import data
-train = dh.training_data(plot=True)     # Data dict
+#train_on_lc = ['biaxial', 'pure_shear', 'uniaxial']
+train_on_lc = ['biaxial', 'pure_shear']     # mixed_test only is interesting!
+train = dh.load_case_data(train_on_lc, concat=True, plot=True)     # Data dict
+
 test = dh.load_case_data('all')         # List of Loadcase data dicts
 
 
 # %% Train multiple Models to average the results
-loss_weights = [1, 0]
+loss_weights = [1, 1]
 num_models = 1
-epochs = 4000
-learning_rate = 0.005
-weighted_load_cases = False
+epochs = 10000
+learning_rate = 0.001
+weighted_load_cases = True
 
 weights = train['weight'] if weighted_load_cases else None
 results = []
@@ -48,7 +51,7 @@ for n_model in range(num_models):
     
     # Model calibration
     model = mc.compile_physics_augmented_NN(loss_weights=loss_weights,
-                                            ns=[8, 8])
+                                            ns=[16, 16])
     
     info_string = get_info_string(loss_weights)
     
@@ -87,32 +90,58 @@ plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
 plt.legend()
 
-# %% Plot losses per load case
-avg_losses = {}
-std_losses = {}
-for t in test:      # loop over test data to get load case names
-    load_case_name = t['load_case']
-    loss_aggregate = []
-    for r in results:
-        loss_aggregate.append(r['load_case_losses'][load_case_name][1])
-        
-    avg_loss = np.mean(loss_aggregate)
-    std_loss = np.std(loss_aggregate)
-    avg_losses[load_case_name] = avg_loss
-    std_losses[load_case_name] = std_loss
+# %% Plot losses for P and W per load case 
 
-x = np.arange(len(avg_losses))
-fig, ax = plt.subplots(dpi=600, figsize=(3,4))
-ax.bar(x, avg_losses.values(), yerr=std_losses.values(), 
-       align='center', ecolor='black', capsize=10)
-ax.set_xticks(x, avg_losses.keys(), zorder=3)
+load_case_names = [t['load_case'] for t in test]
+avg_losses = []         # contains two lists first for loss on P second for loss on W
+std_losses = []         # same as above
+for i in [1,2]:     # Loop over both loss on P second for loss on W
+    avg = []
+    std = []
+    for lc in load_case_names:
+        loss_aggregate = []
+        for r in results:
+            loss_aggregate.append(r['load_case_losses'][lc][i])
+            
+        avg_loss = np.mean(loss_aggregate)
+        std_loss = np.std(loss_aggregate)
+        avg.append(avg_loss)
+        std.append(std_loss)
+    avg_losses.append(avg)
+    std_losses.append(std)
+
+x = np.array([0, 1, 2, 3.5, 4.5])
+fig, ax = plt.subplots(dpi=600, figsize=(4,4))
+ax.bar(x-0.2, avg_losses[0], yerr=std_losses[0], label=r'$P$ loss',
+       align='center', ecolor='black', capsize=6, width=0.4)
+ax.bar(x+0.2, avg_losses[1], yerr=std_losses[1], label=r'$W$ loss',
+       align='center', ecolor='black', capsize=6, width=0.4)
+ax.set_xticks(x, load_case_names, zorder=3)
 ax.grid(zorder=0)
 ax.set_axisbelow(True)
 ax.set_title(f'''Average loss per load case, naive model\n 
                  num_models: {num_models}, learning_rate: {learning_rate},\n
-                 epochs: {epochs}, weighted_load_cases: {weighted_load_cases}''')
+                 epochs: {epochs}, weighted_load_cases: {weighted_load_cases},\n
+                 {get_info_string(loss_weights)}''')
 plt.xticks(rotation='vertical')
 plt.yscale('log')
+plt.legend(loc='upper left')
 plt.show()
 
+# %% Examine the stress / energy prediction of the model in the reference configuration F = I.
 
+tF = tf.constant([np.eye(3)])
+tP, tW = model(tF)
+print(f'For F = I the model predicts: \nW = {tW}, \nP = {tP}')
+
+# %% Plot an example loadcase
+
+#lc = 'mixed_test'
+for lc in dh.files.keys():
+    lc_test = dh.read_file(dh.files[lc])
+    lc_model = results[0]['model']
+    lc_test['*P'], lc_test['*W'] = lc_model(lc_test['F'])
+    lc_test['*P'] = np.array(lc_test['*P'])
+    lc_test['*W'] = np.array(lc_test['*W'])
+    del lc_test['F'], lc_test['weight']
+    dh.plot_data(lc_test)

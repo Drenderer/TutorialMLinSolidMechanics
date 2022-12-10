@@ -57,7 +57,7 @@ def plot_data(data, **kwargs):
     plot_kw1 = {'linestyle':     '--',
                 'marker':        'o',
                 'markevery':     20}
-    plot_kw2 = {'marker':        'o',
+    plot_kw2 = {'marker':        None,
                 'markevery':     20,
                 'alpha':         0.6}
     
@@ -187,39 +187,25 @@ def concatenate_data(data_list):
             
     return data
 
-def training_data(plot=False):
-    data = []
-    for name, file in training_files.items():
-        data.append(read_file(file, plot=False))
-        
-    data = concatenate_data(data)
-    
-    if plot:
-        plot_data(data, title='Trainig data')
-        
-    return data
-        
-def test_data(plot=False):
-    data = []
-    for name, file in test_files.items():
-        data.append(read_file(file, plot=False))
-        
-    data = concatenate_data(data)
-    
-    if plot:
-        plot_data(data, title='Test data')
-    
-    return data
-        
-def load_case_data(which='all', plot=False):
-    file_dict = {'all': files,
-                 'train': training_files,
-                 'test': test_files}
-    f = file_dict.get(which)
+def load_case_data(which='all', concat=False, plot=False):
+    if isinstance(which, str):
+        file_dict = {'all': files,
+                     'train': training_files,
+                     'test': test_files}
+        f = file_dict.get(which)
+    elif isinstance(which, list):
+        f = {}
+        for lc in which:
+            f[lc] = files[lc]
     
     data = []
     for name, file in f.items():
-        data.append(read_file(file, plot=plot))
+        data.append(read_file(file, plot=(plot and not concat)))
+        
+    if concat:
+        data = concatenate_data(data)
+        if plot:
+            plot_data(data)
         
     return data
     

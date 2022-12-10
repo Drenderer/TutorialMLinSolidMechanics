@@ -89,8 +89,7 @@ class ICNN(layers.Layer):
                                 kernel_constraint=non_neg()) 
                    for n in ns]
         self.ls += [layers.Dense(1,
-                                 kernel_constraint=non_neg(),
-                                 use_bias=False)]
+                                 kernel_constraint=non_neg())]
         
     def call(self, x):
         for l in self.ls:
