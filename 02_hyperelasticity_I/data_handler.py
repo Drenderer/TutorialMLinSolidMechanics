@@ -4,6 +4,7 @@ Import and visualize methods
 """
 
 import numpy as np
+from numpy.linalg import norm
 from matplotlib import pyplot as plt
 from os import path as osp
 
@@ -150,6 +151,11 @@ def read_file(path, plot=False):
     P = np.reshape(P, (-1, 3, 3))
     W = np.squeeze(W)
     
+    # Calculate training weigths
+    num_data = F.shape[0]
+    weight = 1.0 / np.mean(norm(P, ord='fro', axis=(1,2)))
+    weight = np.repeat(np.expand_dims(weight, axis=0), num_data, axis=0)
+    
     # Get name of file
     filename = osp.basename(path)
     name, _ = osp.splitext(filename)
@@ -158,7 +164,8 @@ def read_file(path, plot=False):
             #'material_type': 'Hyperelasticity',
             'F': F,
             'P': P,
-            'W': W}
+            'W': W,
+            'weight': weight}
     
     if plot:
         plot_data(data, dpi=500)

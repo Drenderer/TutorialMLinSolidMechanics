@@ -2,8 +2,7 @@
 """
 Created on Wed Nov 16 11:09:59 2022
 
-Task 2.2 Model calibration
-Task 2.3 Loss weighting strategy (Set weighted_load_cases=True)
+Task 3.2 Model calibration
 """
 
 # %% Import
@@ -17,13 +16,26 @@ import data_handler as dh
 import models_core as mc
 
 
-# %% Import data
+# %% Useful function
+def get_info_string(loss_weights):
+    if loss_weights == [1,1]:
+        return 'Trained on both P and W'
+    elif loss_weights == [1,0]:
+        return 'Trained on P only'
+    elif loss_weights == [0,1]:
+        return 'Trained on W only'
+    else:
+        return 'Trained on both P and W, but differently weighted'
 
+
+# %% Import data
 train = dh.training_data(plot=True)     # Data dict
 test = dh.load_case_data('all')         # List of Loadcase data dicts
 
+
 # %% Train multiple Models to average the results
-num_models = 2
+loss_weights = [1, 0]
+num_models = 1
 epochs = 4000
 learning_rate = 0.005
 weighted_load_cases = False
@@ -35,11 +47,15 @@ for n_model in range(num_models):
     print('Training Model number {:d}'.format(n_model))
     
     # Model calibration
-    model = mc.compile_FFNN(ns=[8, 8])
+    model = mc.compile_physics_augmented_NN(loss_weights=loss_weights,
+                                            ns=[8, 8])
+    
+    info_string = get_info_string(loss_weights)
     
     t1 = now()    
     tf.keras.backend.set_value(model.optimizer.learning_rate, learning_rate)
-    h = model.fit(train['F'], train['P'], sample_weight=weights,
+    h = model.fit(train['F'], [train['P'], train['W']], 
+                  sample_weight=weights,
                   epochs = epochs,  verbose = 2)
     t2 = now()
     print('it took', t2 - t1, '(sec) to calibrate the model')
@@ -47,13 +63,14 @@ for n_model in range(num_models):
     # Evaluate Model
     load_case_losses = {}
     for t in test:
-        l = model.evaluate(t['F'], t['P'])
+        l = model.evaluate(t['F'], [t['P'], t['W']])
         load_case_losses[t['load_case']] = l
    
     
     # Write results
     model_results = {'model_number': n_model,
                      'model': model,
+                     'info_string': info_string,
                      'loss': h.history['loss'],
                      'epochs': epochs,
                      'learning_rate': learning_rate,
@@ -77,7 +94,7 @@ for t in test:      # loop over test data to get load case names
     load_case_name = t['load_case']
     loss_aggregate = []
     for r in results:
-        loss_aggregate.append(r['load_case_losses'][load_case_name])
+        loss_aggregate.append(r['load_case_losses'][load_case_name][1])
         
     avg_loss = np.mean(loss_aggregate)
     std_loss = np.std(loss_aggregate)
@@ -98,11 +115,4 @@ plt.xticks(rotation='vertical')
 plt.yscale('log')
 plt.show()
 
-
-# %% Evaluate
-# eval_data = dh.load_case_data(which='test')
-# for t in eval_data:
-#     t['*P'] = np.array(model(t['F']))
-#     del t['W']
-#     dh.plot_data(t)
 
