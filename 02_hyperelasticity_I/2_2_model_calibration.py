@@ -105,7 +105,7 @@ plt.show()
 
 tF = tf.constant([np.eye(3)])
 tP = model(tF)
-print(f'For F = I the model predicts: \nP = {tP} \n={np.round(tP,2)}')
+print(f'For F = I the model predicts: \nP = \n{tP} \n=\n{np.round(tP,2)}')
 
 # %% Plot an example loadcase
 

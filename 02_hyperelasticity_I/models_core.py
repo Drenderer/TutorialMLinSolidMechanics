@@ -70,7 +70,6 @@ class ICNN(layers.Layer):
     """
     Basic input convex neural network for hyperelasticity:
         - Uses invariants as inputs (all layers are constraint to have positive weights)
-        - Does not have a bias in the last layer
         - Softplus activation for hidden and identity activation for last layer
     """
     

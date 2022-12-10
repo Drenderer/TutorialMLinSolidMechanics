@@ -1,0 +1,13 @@
+ICNN_params = {'loss_weights':        [1, 0],
+               'epochs':              300,
+               'learning_rate':       0.002,
+               'weighted_load_cases': True,
+               'model_size':          [16, 16]}
+
+FFNN_params = {'epochs':              3000,
+               'learning_rate':       0.002,
+               'weighted_load_cases': True,
+               'model_size':          [32, 32]}
+
+num_models = 5		-> 5 models each
+num_train_lp=90		-> 90/10 split train/test

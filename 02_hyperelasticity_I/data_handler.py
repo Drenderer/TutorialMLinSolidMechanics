@@ -7,7 +7,13 @@ import numpy as np
 from numpy.linalg import norm
 from matplotlib import pyplot as plt
 from os import path as osp
+from os import listdir
+import random
 
+import tensorflow as tf
+from tensorflow.keras import layers
+from tensorflow.linalg import det, trace, inv
+from tensorflow.math import log, square
 
 # %% Custom color Cycler 
 # import cycler
@@ -59,7 +65,7 @@ def plot_data(data, **kwargs):
                 'markevery':     20}
     plot_kw2 = {'marker':        None,
                 'markevery':     20,
-                'alpha':         0.6}
+                'alpha':         0.9}
     
     def replace(str):
         return replace_by.get(str) or str
@@ -158,7 +164,7 @@ def read_file(path, plot=False):
     
     # Get name of file
     filename = osp.basename(path)
-    name, _ = osp.splitext(filename)
+    name = osp.splitext(filename)[0]
     
     data = {'load_case': name,
             #'material_type': 'Hyperelasticity',
@@ -209,3 +215,78 @@ def load_case_data(which='all', concat=False, plot=False):
         
     return data
     
+# %% Data imprt & generation for Task 2: 4 Concentric sampled deformation gradients
+
+class StressFromStrain(layers.Layer):
+    
+    def __init__(self):
+        
+        super().__init__()
+        self.G = tf.constant([[4,  0,  0],
+                              [0, .5,  0],
+                              [0,  0, .5]])
+        
+    def call(self, F):
+
+        with tf.GradientTape() as g:
+            g.watch(F)
+            
+            C = tf.transpose(F, perm=[0,2,1]) @ F
+            J = det(F)
+            cof_C = det(C)[:,tf.newaxis,tf.newaxis] * inv(C)
+            I_1 = trace(C)
+            I_4 = trace(C @ self.G)
+            I_5 = trace(cof_C @ self.G)
+            
+            W = 8*I_1 + 10*square(J) - 56*log(J) + 0.2*(square(I_4 )+ square(I_5)) - 44
+        P = g.gradient(W, F)
+        return P, W
+
+def load_concentric(num_train_lp=50, plot=False):
+    file_list = listdir("concentric")
+    # training_files = random.sample(file_list, num_train_lp)
+    # test_files = list(set(file_list) - set(training_files))
+    
+    stress_from_strain = StressFromStrain()
+    data = []
+    for filename in file_list:
+        path = osp.join('concentric', filename)
+        F = np.loadtxt(path)
+        F = np.reshape(F, (-1, 3, 3))
+        
+        # Calculate P and W
+        P, W = stress_from_strain(F)
+        P = np.array(P)
+        W = np.array(W)
+        
+        # Calculate training weigths
+        num_data = F.shape[0]
+        weight = 1.0 / np.mean(norm(P, ord='fro', axis=(1,2)))
+        weight = np.repeat(np.expand_dims(weight, axis=0), num_data, axis=0)
+        
+        # Get name of file
+        name = osp.splitext(filename)[0]
+        
+        d = {'load_case': name,
+             #'material_type': 'Hyperelasticity',
+             'F': F,
+             'P': P,
+             'W': W,
+             'weight': weight}
+        
+        if plot:
+            plot_data(d, dpi=300)
+        
+        data.append(d)
+        
+    # Split into training and test data
+    training_indices = random.sample(range(100), num_train_lp)
+    test_indices = list(set(range(100)) - set(training_indices))
+    
+    training_data = [data[i] for i in training_indices]
+    training_data_concat = concatenate_data(training_data)
+    
+    test_data = [data[i] for i in test_indices]
+    test_data_concat = concatenate_data(test_data)
+    
+    return training_data_concat, test_data_concat, training_data, test_data

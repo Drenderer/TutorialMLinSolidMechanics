@@ -30,7 +30,7 @@ def get_info_string(loss_weights):
 
 # %% Import data
 #train_on_lc = ['biaxial', 'pure_shear', 'uniaxial']
-train_on_lc = ['biaxial', 'pure_shear']     # mixed_test only is interesting!
+train_on_lc = ['biax_test', 'mixed_test']     # mixed_test only is interesting!
 train = dh.load_case_data(train_on_lc, concat=True, plot=True)     # Data dict
 
 test = dh.load_case_data('all')         # List of Loadcase data dicts
@@ -132,7 +132,7 @@ plt.show()
 
 tF = tf.constant([np.eye(3)])
 tP, tW = model(tF)
-print(f'For F = I the model predicts: \nW = {tW}, \nP = {tP}')
+print(f'For F = I the model predicts: \nW = {tW}, \nP = \n{tP} \n=\n{np.round(tP,2)}')
 
 # %% Plot an example loadcase
 
