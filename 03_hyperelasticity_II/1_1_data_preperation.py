@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Nov 16 11:09:59 2022
+Created on Tue Dec 13 18:48:05 2022
 
 Task 3: 1.1 Data preparation
 

@@ -8,6 +8,7 @@ import numpy as np
 from numpy.linalg import norm
 from matplotlib import pyplot as plt
 from os import path as osp
+from scipy.spatial.transform import Rotation
 
 # %% Custom color Cycler 
 import cycler
@@ -40,8 +41,34 @@ test_files =     ['data/BCC_test1.txt', 'data/BCC_test2.txt', 'data/BCC_test3.tx
 
 # %% Symmetry groups
 
-cubic_rotvecs = [[0, 0, 0],
-                 ]
+cubic_rotvecs = [[ 0.        ,  0.        ,  0.        ],  # no rotation
+                 [ 1.57079633,  0.        ,  0.        ],  # x-axis
+                 [ 3.14159265,  0.        ,  0.        ],
+                 [ 4.71238898,  0.        ,  0.        ],
+                 [ 0.        ,  1.57079633,  0.        ],  # y-axis
+                 [ 0.        ,  3.14159265,  0.        ],
+                 [ 0.        ,  4.71238898,  0.        ],
+                 [ 0.        ,  0.        ,  1.57079633],  # z-axis
+                 [ 0.        ,  0.        ,  3.14159265],
+                 [ 0.        ,  0.        ,  4.71238898],
+                 [ 2.22144147,  2.22144147,  0.        ],  # face-diagonals
+                 [-2.22144147,  2.22144147,  0.        ],
+                 [ 2.22144147,  0.        ,  2.22144147],
+                 [-2.22144147,  0.        ,  2.22144147],
+                 [ 0.        ,  2.22144147,  2.22144147],
+                 [ 0.        , -2.22144147,  2.22144147],
+                 [ 1.20919958,  1.20919958,  1.20919958],  # corner-diagonals, 1/3 rotation
+                 [-1.20919958,  1.20919958,  1.20919958],
+                 [ 1.20919958, -1.20919958,  1.20919958],
+                 [-1.20919958, -1.20919958,  1.20919958],
+                 [ 2.41839915,  2.41839915,  2.41839915],  # corner-diagonals, 2/3 rotation
+                 [-2.41839915,  2.41839915,  2.41839915],
+                 [ 2.41839915, -2.41839915,  2.41839915],
+                 [-2.41839915, -2.41839915,  2.41839915]]
+
+cubic_group = Rotation.from_rotvec(cubic_rotvecs).as_matrix() # Convert rotation vectors to rotation matrices
+cubic_group = np.round(cubic_group, 3)  # Clean up numerical errors, works only cause we get nice values
+# cubic_group = np.sign(cubic_group)    # Clean up -0 to 0. Just for visual purposes, works only because vaues are either -1, 0, 1
 
 # %% Module methods
 
@@ -205,16 +232,14 @@ def concatenate_data(data_list):
             
     return data
 
-def load_case_data(which='all', concat=False, plot=False):
+def load_case_data(which='all', concat=False, normalize_weights=False, plot=False):
     if isinstance(which, str):
         file_dict = {'all': files.values(),
                      'train': training_files,
                      'test': test_files}
         f = file_dict.get(which)
     elif isinstance(which, list):
-        f = []
-        for lc in which:
-            f.append(files[lc])
+        f = [files[lc] for lc in which]
     else:
         raise ValueError(f'keyword argument "which" can\'t be of type {type(which)}')
     
@@ -224,7 +249,51 @@ def load_case_data(which='all', concat=False, plot=False):
         
     if concat:
         data = concatenate_data(data)
+
+        if normalize_weights:
+            factor = np.mean(data['weight'])
+            data['weight'] /= factor
+            
         if plot:
             plot_data(data)
         
     return data
+
+def augment_data(data, symmetry_group=None, objectivity_group=None, plot=False):
+    
+    if isinstance(objectivity_group, int):
+        objectivity_group = Rotation.random(objectivity_group).as_matrix()
+    
+    working_data = data.copy()
+    
+    if objectivity_group is not None:
+        augmented_data = []
+        for Q_obj in objectivity_group:
+            aug_data = working_data.copy()
+            
+            aug_data['F'] = Q_obj @ aug_data['F']
+            aug_data['P'] = Q_obj @ aug_data['P']
+            aug_data['normalized P'] = Q_obj @ aug_data['normalized P']
+            
+            augmented_data.append(aug_data)
+            
+        working_data = concatenate_data(augmented_data)
+        
+    if symmetry_group is not None:
+        augmented_data = []
+        for Q_mat in symmetry_group:
+            aug_data = working_data.copy()
+            
+            aug_data['F'] = aug_data['F'] @ Q_mat
+            aug_data['P'] = aug_data['P'] @ Q_mat
+            aug_data['normalized P'] = aug_data['normalized P'] @ Q_mat
+            
+            augmented_data.append(aug_data)
+            
+        working_data = concatenate_data(augmented_data)
+        
+    if plot:
+        plot_data(working_data)
+        
+    return working_data
+
