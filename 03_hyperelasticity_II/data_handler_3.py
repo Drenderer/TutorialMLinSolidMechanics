@@ -38,6 +38,11 @@ files = {'biaxial':     'data/BCC_biaxial.txt',
 training_files = ['data/BCC_biaxial.txt', 'data/BCC_planar.txt', 'data/BCC_shear.txt', 'data/BCC_uniaxial.txt', 'data/BCC_volumetric.txt']
 test_files =     ['data/BCC_test1.txt', 'data/BCC_test2.txt', 'data/BCC_test3.txt']
 
+# %% Symmetry groups
+
+cubic_rotvecs = [[0, 0, 0],
+                 ]
+
 # %% Module methods
 
 def plot_data(data, **kwargs):
