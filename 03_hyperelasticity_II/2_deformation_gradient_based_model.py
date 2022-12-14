@@ -29,12 +29,12 @@ def get_info_string(loss_weights):
 
 
 # %% Import data
-train = dh.load_case_data('train', concat=True, 
+train = dh.load_case_data('train', concat=True,    #['biaxial', 'shear', 'uniaxial']
                           normalize_weights=True, plot=True)        # Data dict
 test = dh.load_case_data('all')                                     # List of Loadcase data dicts
 aug_test = [dh.augment_data(t,
                             symmetry_group=dh.cubic_group,
-                            objectivity_group=100)
+                            objectivity_group=2)
             for t in test]                                          # List of augmented data dicts for every load case
 
 
@@ -42,8 +42,8 @@ aug_test = [dh.augment_data(t,
 model_args = {'ns': [16, 16]}
 loss_weights = [1, 1]
 num_models = 1
-epochs = 10000
-learning_rate = 0.005
+epochs = 10_000
+learning_rate = 0.01
 weighted_load_cases = True
 
 weights = train['weight'] if weighted_load_cases else None
@@ -119,7 +119,7 @@ for i in [1,2]:     # Loop over both loss on P second for loss on W
     avg_losses.append(avg)
     std_losses.append(std)
 
-x = np.array([1,2,3,4,5, 7,8,9])
+x = np.array([1,2,3,4, 6,7,8,9])
 fig, ax = plt.subplots(dpi=600, figsize=(4,4))
 ax.bar(x-0.2, avg_losses[0], yerr=std_losses[0], label=r'$P$ loss',
        align='center', ecolor='black', capsize=6, width=0.4)
@@ -154,7 +154,7 @@ for i in ['load_case_losses', 'aug_load_case_losses']:     # Loop over both loss
     avg_losses.append(avg)
     std_losses.append(std)
 
-x = np.array([1,2,3,4,5, 7,8,9])
+x = np.array([1,2,3,4, 6,7,8,9])
 fig, ax = plt.subplots(dpi=600, figsize=(4,4))
 ax.bar(x-0.2, avg_losses[0], yerr=std_losses[0], label=r'Loss on original data',
        align='center', ecolor='black', capsize=6, width=0.4)

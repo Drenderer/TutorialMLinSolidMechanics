@@ -29,15 +29,15 @@ custom_cycler = cycler.cycler('color', color)
 # %% Constants
 
 files = {'biaxial':     'data/BCC_biaxial.txt',
-         'planar':      'data/BCC_planar.txt',
          'shear':       'data/BCC_shear.txt',
          'uniaxial':    'data/BCC_uniaxial.txt',
          'volumetric':  'data/BCC_volumetric.txt',
+         'planar':      'data/BCC_planar.txt',
          'test1':       'data/BCC_test1.txt',
          'test2':       'data/BCC_test2.txt',
          'test3':       'data/BCC_test3.txt'}
-training_files = ['data/BCC_biaxial.txt', 'data/BCC_planar.txt', 'data/BCC_shear.txt', 'data/BCC_uniaxial.txt', 'data/BCC_volumetric.txt']
-test_files =     ['data/BCC_test1.txt', 'data/BCC_test2.txt', 'data/BCC_test3.txt']
+training_files = ['data/BCC_biaxial.txt', 'data/BCC_shear.txt', 'data/BCC_uniaxial.txt', 'data/BCC_volumetric.txt']
+test_files =     ['data/BCC_planar.txt', 'data/BCC_test1.txt', 'data/BCC_test2.txt', 'data/BCC_test3.txt']
 
 # %% Symmetry groups
 
@@ -204,7 +204,7 @@ def read_file(path, plot=False):
     data.update({'weight': weight})
     
     # Normalize P and W
-    a = 1 / np.mean(P)      # Calculate normalization Factor
+    a = 1 / 162.3484998850686      # Normalization factor for this dataset
     normalized_P = a*P
     normalized_W = a*W
     

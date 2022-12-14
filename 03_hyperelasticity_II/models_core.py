@@ -88,7 +88,7 @@ class PolyconvexArguments(layers.Layer):
     def call(self, F):
         
         J = det(F)[:,tf.newaxis]    # Newaxis necessary for later concatenating
-        cof_F = det(F)[:,tf.newaxis,tf.newaxis] * inv(F)
+        cof_F = det(F)[:,tf.newaxis,tf.newaxis] * tf.transpose(inv(F), perm=[0,2,1])
         
         # Flatten F and cof(F) to batch x 9 array for concatenating
         flat_F = tf.reshape(F, (-1,9))
