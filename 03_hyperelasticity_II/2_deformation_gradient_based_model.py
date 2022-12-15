@@ -36,7 +36,11 @@ aug_test = [dh.augment_data(t,
                             symmetry_group=dh.cubic_group,
                             objectivity_group=2)
             for t in test]                                          # List of augmented data dicts for every load case
-
+invar_test = dh.load_case_data('test', concat=True)
+aug_invar_test = {'original': invar_test,
+                  'material symmetry augmented': dh.augment_data(invar_test, symmetry_group=dh.cubic_group),
+                  'observer augmented': dh.augment_data(invar_test, objectivity_group=100),
+                  'fully augmeted': dh.augment_data(invar_test, symmetry_group=dh.cubic_group, objectivity_group=100)}
 
 # %% Train multiple Models to average the results
 model_args = {'ns': [16, 16]}
@@ -76,6 +80,11 @@ for n_model in range(num_models):
     for t in aug_test:
         l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
         aug_load_case_losses[t['load_case']] = l
+        
+    aug_losses = {}
+    for test_case, t in aug_invar_test.items():
+        l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
+        aug_losses[test_case] = l
    
     
     # Write results
@@ -86,7 +95,8 @@ for n_model in range(num_models):
                      'epochs': epochs,
                      'learning_rate': learning_rate,
                      'load_case_losses': load_case_losses,
-                     'aug_load_case_losses': aug_load_case_losses}
+                     'aug_load_case_losses': aug_load_case_losses,
+                     'aug_losses': aug_losses}
     results.append(model_results)
     
 
@@ -134,7 +144,37 @@ plt.yscale('log')
 plt.legend(loc='upper left')
 plt.show()
 
-# %% Plot losses for P and W per augmented load case 
+
+# %% Plot losses for all combinations of augmented test data
+
+test_cases = r['aug_losses'].keys()
+
+avg = []
+std = []
+for test_case in test_cases:
+    loss_aggregate =  []
+    for r in results:
+        loss_aggregate.append(r['aug_losses'][test_case][0])
+    avg_loss = np.mean(loss_aggregate)
+    std_loss = np.std(loss_aggregate)
+    avg.append(avg_loss)
+    std.append(std_loss)
+
+
+x = np.arange(len(test_cases))
+fig, ax = plt.subplots(dpi=600, figsize=(4,4))
+ax.bar(x, avg, yerr=std, label=r'Overall loss',
+       align='center', ecolor=dh.colors['b5'], capsize=10)
+ax.set_xticks(x, test_cases, zorder=3)
+ax.grid(zorder=0)
+ax.set_axisbelow(True)
+ax.set_title('''Average loss per test data''')
+plt.xticks(rotation='vertical')
+plt.yscale('log')
+plt.legend(loc='upper left')
+plt.show()
+
+# %% Plot losses for P per original and fully augmented load case 
 
 load_case_names = [t['load_case'] for t in test]
 avg_losses = []         # contains two lists first for loss on P second for loss on W

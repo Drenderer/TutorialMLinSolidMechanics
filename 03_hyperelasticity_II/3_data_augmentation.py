@@ -31,25 +31,29 @@ def get_info_string(loss_weights):
 # %% Import data
 train = dh.load_case_data('train', concat=True, 
                           normalize_weights=True, plot=True)        # Data dict
-train = dh.augment_data(train,
-                        symmetry_group=dh.cubic_group,
-                        objectivity_group=100)
+pre_train = dh.augment_data(train,
+                            symmetry_group=dh.cubic_group)
+aug_train = dh.augment_data(train,
+                            symmetry_group=dh.cubic_group,
+                            objectivity_group=100)
 test = dh.load_case_data('all')                                     # List of Loadcase data dicts
 aug_test = [dh.augment_data(t,
                             symmetry_group=dh.cubic_group,
-                            objectivity_group=2)
+                            objectivity_group=100)
             for t in test]                                          # List of augmented data dicts for every load case
 
 
 # %% Train multiple Models to average the results
-model_args = {'ns': [8, 8]}
+model_args = {'ns': [32, 32]}
 loss_weights = [1, 1]
 num_models = 1
-epochs = 5
-learning_rate = 0.003
-weighted_load_cases = False
+precal_epochs = 500    # epochs used to train on unaugmented data before training on augmented data
+precal_learning_rate = 0.03
+epochs = 50
+learning_rate = 0.03
+weighted_load_cases = True
 
-weights = train['weight'] if weighted_load_cases else None
+
 results = []
 for n_model in range(num_models):
     
@@ -62,8 +66,16 @@ for n_model in range(num_models):
     info_string = get_info_string(loss_weights)
     
     t1 = now()    
+    # Pre train
+    tf.keras.backend.set_value(model.optimizer.learning_rate, precal_learning_rate)
+    weights = pre_train['weight'] if weighted_load_cases else None
+    precal_h = model.fit(pre_train['F'], [pre_train['normalized P'], pre_train['normalized W']], 
+                          sample_weight=weights,
+                          epochs = precal_epochs,  verbose = 1)
+    
     tf.keras.backend.set_value(model.optimizer.learning_rate, learning_rate)
-    h = model.fit(train['F'], [train['normalized P'], train['normalized W']], 
+    weights = aug_train['weight'] if weighted_load_cases else None
+    h = model.fit(aug_train['F'], [aug_train['normalized P'], aug_train['normalized W']], 
                   sample_weight=weights,
                   epochs = epochs,  verbose = 1)
     t2 = now()
@@ -85,7 +97,7 @@ for n_model in range(num_models):
     model_results = {'model_number': n_model,
                      'model': model,
                      'info_string': info_string,
-                     'loss': h.history['loss'],
+                     'loss': precal_h.history['loss'] + h.history['loss'],
                      'epochs': epochs,
                      'learning_rate': learning_rate,
                      'load_case_losses': load_case_losses,

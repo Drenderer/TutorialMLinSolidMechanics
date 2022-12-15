@@ -13,19 +13,19 @@ from scipy.spatial.transform import Rotation
 # %% Custom color Cycler 
 import cycler
 import matplotlib as mpl
-colors = {'b1': '#0d435f',
-          'b2': '#0d435f',
-          'b3': '#0281d3',
-          'b4': '#33aaff',
-          'b5': '#5dcaef',
-          'o1': '#5c0d2e',
-          'o2': '#853933',
-          'o3': '#ae6538',
-          'o4': '#d7913d',
-          'o5': '#ffbc42'}
-# blues #0d435f, #0d435f, #0281d3, #33aaff, #5dcaef
-# oranges #5c0d2e, #853933, #ae6538, #d7913d, #ffbc42
-custom_cycler = cycler.cycler('color', colors.values())
+
+colors = {'b1': '#002f3d',
+          'b2': '#004352',
+          'b3': '#006e7a',
+          'b4': '#00999e',
+          'b5': '#00c2e0',
+          'o1': '#a12b00',
+          'o2': '#d03400',
+          'o3': '#f05c00',
+          'o4': '#ff9604',
+          'o5': '#ffa32b'}
+
+custom_cycler = cycler.cycler('color', [list(colors.values())[i] for i in [0,9,2,7,4,5,1,6,3,8]])
 mpl.rcParams['axes.prop_cycle'] = custom_cycler
 
 # %% Constants
@@ -218,6 +218,7 @@ def read_file(path, plot=False):
     # Get name of file
     filename = osp.basename(path)
     name = osp.splitext(filename)[0]
+    name = name[4:] # Remove the BCC_ in front of every name
     
     data = {'load_case': name,
             #'material_type': 'Hyperelasticity',
@@ -294,7 +295,7 @@ def load_case_data(which='all', concat=False, normalize_weights=False, plot=Fals
             data['weight'] /= factor
             
         if plot:
-            plot_data(data)
+            plot_data(data, dpi=500)
         
     return data
 

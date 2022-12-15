@@ -1,0 +1,8 @@
+model_args = {'ns': [32, 32]}
+loss_weights = [1, 1]
+num_models = 1
+precal_epochs = 500    # epochs used to train on unaugmented data before training on augmented data
+precal_learning_rate = 0.03
+epochs = 50
+learning_rate = 0.03
+weighted_load_cases = True

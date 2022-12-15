@@ -35,10 +35,11 @@ test = dh.load_case_data('all')                                 # List of Loadca
 
 
 # %% Train multiple Models to average the results
+model_args = {'ns': [32, 32, 16]}
 loss_weights = [1, 1]
 num_models = 1
-epochs = 4000
-learning_rate = 0.001
+epochs = 5000
+learning_rate = 0.005
 weighted_load_cases = True
 
 weights = train['weight'] if weighted_load_cases else None
@@ -49,7 +50,7 @@ for n_model in range(num_models):
     
     # Model calibration
     model = mc.compile_invariant_based_model(loss_weights=loss_weights,
-                                             ns=[32, 32, 16])
+                                             **model_args)
     
     info_string = get_info_string(loss_weights)
     
@@ -111,19 +112,18 @@ for i in [1,2]:     # Loop over both loss on P second for loss on W
 x = np.array([1,2,3,4, 6,7,8,9])
 fig, ax = plt.subplots(dpi=600, figsize=(4,4))
 ax.bar(x-0.2, avg_losses[0], yerr=std_losses[0], label=r'$P$ loss',
-       align='center', ecolor='black', capsize=6, width=0.4)
+       align='center', ecolor='black', capsize=6, width=0.4,
+       color=dh.colors['o1'])
 ax.bar(x+0.2, avg_losses[1], yerr=std_losses[1], label=r'$W$ loss',
-       align='center', ecolor='black', capsize=6, width=0.4)
+       align='center', ecolor='black', capsize=6, width=0.4,
+       color=dh.colors['o4'])
 ax.set_xticks(x, load_case_names, zorder=3)
 ax.grid(zorder=0)
 ax.set_axisbelow(True)
-ax.set_title(f'''Average loss per load case, naive model\n 
-                 num_models: {num_models}, learning_rate: {learning_rate},\n
-                 epochs: {epochs}, weighted_load_cases: {weighted_load_cases},\n
-                 {get_info_string(loss_weights)}''')
+ax.set_title('Average loss per load case')
 plt.xticks(rotation='vertical')
 plt.yscale('log')
-plt.legend(loc='upper left')
+plt.legend(loc='upper center')
 plt.show()
 
 # %% Examine the stress / energy prediction of the model in the reference configuration F = I.
@@ -142,4 +142,4 @@ for lc in dh.files.keys():
     lc_test['*normalized P'] = np.array(lc_test['*normalized P'])
     lc_test['*normalized W'] = np.array(lc_test['*normalized W'])
     del lc_test['F'], lc_test['weight'], lc_test['W'], lc_test['P']
-    dh.plot_data(lc_test)
+    dh.plot_data(lc_test, dpi=500)
