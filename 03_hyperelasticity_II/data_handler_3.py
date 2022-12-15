@@ -12,19 +12,21 @@ from scipy.spatial.transform import Rotation
 
 # %% Custom color Cycler 
 import cycler
-import matplotlib.colors as mcolors
-
-# sample the colormaps that you want to use. Use 128 from each so we get 256
-# colors in total
-colors1 = plt.cm.inferno(np.linspace(0, 0.8, 128))
-colors2 = plt.cm.viridis(np.linspace(0.8, 0.3, 64))
-
-# combine them and build a new colormap
-colors = np.vstack((colors1, colors2))
-mymap = mcolors.LinearSegmentedColormap.from_list('my_colormap', colors)
-
-color = mymap(np.linspace(0, 1, 9))
-custom_cycler = cycler.cycler('color', color)
+import matplotlib as mpl
+colors = {'b1': '#0d435f',
+          'b2': '#0d435f',
+          'b3': '#0281d3',
+          'b4': '#33aaff',
+          'b5': '#5dcaef',
+          'o1': '#5c0d2e',
+          'o2': '#853933',
+          'o3': '#ae6538',
+          'o4': '#d7913d',
+          'o5': '#ffbc42'}
+# blues #0d435f, #0d435f, #0281d3, #33aaff, #5dcaef
+# oranges #5c0d2e, #853933, #ae6538, #d7913d, #ffbc42
+custom_cycler = cycler.cycler('color', colors.values())
+mpl.rcParams['axes.prop_cycle'] = custom_cycler
 
 # %% Constants
 
@@ -84,35 +86,71 @@ def plot_data(data, **kwargs):
                   'F':              'Deformation Gradient $F$',
                   'P':              '$1^{st}$ Piola Kirchhoff Stress $P$',
                   'd':              'Electric Displacement Field $d$',
-                  'e':              'Electric Field $e$'}
+                  'e':              'Electric Field $e$',
+                  'normalized P':   'normalized $1^{st}$ Piola Kirchhoff Stress $P$',
+                  'W':              'Strain Energy Density $W$',
+                  'normalized W':   'normalized Strain Energy Density $W$',
+                  'weight':         'Training Weight'}
+    
+    # Keyword arguments for the plots
+    #       master kw takes priority, 1 is for first and 2 for the second plot in each axis
+    #       scaler, vector, tensor kw are used to define special arguments for individual tensor components
+    #       deault kw are the kw with least priority and like the master kw are used for every plot
     # Keyword arguments for first and second ('*') plot
-    plot_kw1 = {'linestyle':     '--',
-                'marker':        'o',
-                'markevery':     20}
-    plot_kw2 = {'marker':        None,
-                'markevery':     20,
-                'alpha':         0.9}
+    master_kw1 = {'linestyle':     '--'}
+    master_kw2 = {'marker':        None,
+                  'alpha':         0.7}
+    scalar_kw = {'marker': 'o'}
+    vector_kw = {(0): {'marker': '^'},
+                 (1): {'marker': '>'},
+                 (2): {'marker': 'v'},
+                 'default': {'marker': 'o'}}
+    tensor_kw = {(0,0): {'marker': 's', 'color': colors['o1']},
+                 (1,1): {'marker': 's', 'color': colors['o3']},
+                 (2,2): {'marker': 's', 'color': colors['o5']},
+                 (0,1): {'marker': 'v', 'color': colors['b2']},
+                 (1,0): {'marker': 'v', 'color': colors['b4']},
+                 'default': {'marker': 'v', 'color': 'grey'}}
+    default_kw = {'markevery': 20,
+                  'markersize': 5,
+                  'linewidth': 2}
+    
+    # Allow the special variables to be overwritten by kwargs when calling the plot_data function
+    master_kw1 = master_kw1 | kwargs.pop('master_kw1', {})
+    master_kw2 = master_kw2 | kwargs.pop('master_kw2', {})
+    scalar_kw  = scalar_kw  | kwargs.pop('scalar_kw', {})
+    vector_kw  = vector_kw  | kwargs.pop('vector_kw', {})
+    tensor_kw  = tensor_kw  | kwargs.pop('tensor_kw', {})
+    default_kw = default_kw | kwargs.pop('default_kw', {})
     
     def replace(str):
         return replace_by.get(str) or str
     
-    def plot_tensor(ax, tensor, ls=(), y_label='', **kwargs):
+    def plot_tensor(ax, tensor, ls=(), y_label='', **master_kws):
         shape = tensor.shape[1:]
         order = len(shape)
-        num = tensor.shape[0]
-        
-        #ax.set_prop_cycle(custom_cycler)
-        ax.plot(*ls, tensor.reshape(num,-1), **kwargs)
+
         if order == 0:   # Scalar
+            kw = default_kw | scalar_kw | master_kws
+            ax.plot(*ls, tensor, **kw)
             ax.set_ylabel(y_label)
         elif order == 1: # Vector
+            for i in range(shape[0]):
+                kw = default_kw | vector_kw.get((i), vector_kw['default']) | master_kws
+                ax.plot(*ls, tensor[:, i], **kw)
             ax.legend(tuple(f'{i}' for i in range(1, shape[0]+1)))
             ax.set_ylabel(f'{y_label}$_i$')
         elif order == 2: # Matrix
-            ax.legend(tuple(f'({i}, {j})' for i in range(1, shape[0]+1) for j in range(1, shape[1]+1)))
+            for j in range(shape[1]):
+                for i in range(shape[0]):
+                    kw = default_kw | tensor_kw.get((i,j), tensor_kw['default']) | master_kws
+                    ax.plot(*ls, tensor[:, i, j], **kw)
+            ax.legend(tuple(f'{i}, {j}' for j in range(1, shape[1]+1) for i in range(1, shape[0]+1)),
+                      bbox_to_anchor=(0, 0.8, 0.35, 0.2), loc='upper left',
+                      ncol=3, mode="expand", prop={'size': 6})
             ax.set_ylabel(f'{y_label}'+'$_{i \ j}$')
-        elif order != 0:
-            print(f'Define legend yourself for tensor order {order}')
+        else:
+            ax.text(.4, .47,'I can\'t plot this')
     
     # Collect Data
     metadata_str = ''   # For every metadata entry this will be extended 
@@ -130,21 +168,21 @@ def plot_data(data, **kwargs):
         elif key[0] == '*' and isinstance(value, np.ndarray) and (key[1:] in data.keys()):
             dbl_plts.append((key[1:], value))
         elif isinstance(value, np.ndarray):
-            tensors.append((replace(key), key, value, next_ax(), plot_kw1))
+            tensors.append((replace(key), key, value, next_ax(), master_kw1))
             name2ax[key] = next_ax()
         elif isinstance(value, tuple):
             for i, v in enumerate(value):
                 if isinstance(v, np.ndarray):
-                    tensors.append((replace(key) + f' {i+1}', key, v, next_ax(), plot_kw1))
+                    tensors.append((replace(key) + f' {i+1}', key, v, next_ax(), master_kw1))
                     name2ax[key] = next_ax()
                     
     for key, value in dbl_plts:     # Loop over all data entries with '*'
         if isinstance(value, np.ndarray):
-            tensors.append((replace(key), key, value, name2ax[key], plot_kw2))
+            tensors.append((replace(key), key, value, name2ax[key], master_kw2))
         elif isinstance(value, tuple):
             for i, v in enumerate(value):
                 if isinstance(v, np.ndarray):
-                    tensors.append((replace(key) + f' {i+1}', key, v, name2ax[key], plot_kw2))
+                    tensors.append((replace(key) + f' {i+1}', key, v, name2ax[key], master_kw2))
     
     metadata_str = metadata_str[:-2]    # Remove last comma
     
@@ -173,6 +211,7 @@ def plot_data(data, **kwargs):
     
     plt.tight_layout()
     plt.show()
+
 
 def read_file(path, plot=False):
     
@@ -204,7 +243,7 @@ def read_file(path, plot=False):
     data.update({'weight': weight})
     
     # Normalize P and W
-    a = 1 / 162.3484998850686      # Normalization factor for this dataset
+    a = 0.006159588790213215      # Normalization factor for this dataset 1/np.mean(P_dataset)
     normalized_P = a*P
     normalized_W = a*W
     

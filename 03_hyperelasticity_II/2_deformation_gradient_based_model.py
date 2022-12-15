@@ -42,7 +42,7 @@ aug_test = [dh.augment_data(t,
 model_args = {'ns': [16, 16]}
 loss_weights = [1, 1]
 num_models = 1
-epochs = 10_000
+epochs = 4_000
 learning_rate = 0.01
 weighted_load_cases = True
 
@@ -177,7 +177,6 @@ print(f'For F = I the model predicts: \nW = {tW}, \nP = \n{tP} \n=\n{np.round(tP
 
 # %% Plot an example loadcase
 
-#lc = 'mixed_test'
 for lc in dh.files.keys():
     lc_test = dh.read_file(dh.files[lc])
     lc_model = results[0]['model']
