@@ -17,3 +17,15 @@ import data_handler_3 as dh
 
 dh.load_case_data('all', plot=True)
 
+# %% Fancy plot
+
+data = dh.load_case_data('all')
+
+for d in data:
+    dh.plot_data(d, 
+                 n_cols=3, 
+                 dont_plot=['weight', 'normalized P', 'normalized W'], 
+                 dpi=600, 
+                 figsize=(15,5), 
+                 title=None, 
+                 tensor_kw={'legend': True})

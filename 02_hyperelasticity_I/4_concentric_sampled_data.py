@@ -14,7 +14,7 @@ from datetime import datetime
 now = datetime.now
 import random
 
-import data_handler as dh
+import data_handler_2 as dh
 import models_core as mc
 
 
@@ -31,25 +31,25 @@ def get_info_string(loss_weights):
 
 # %% Import data
 
-train, test, train_list, test_list = dh.load_concentric(num_train_lp=90, plot=False)
+train, test, train_list, test_list = dh.load_concentric(num_train_lp=95, plot=False, normalize_weights=True)
 
 # %% Train multiple Models to average the results
 ICNN_params = {'loss_weights':        [1, 0],
                'epochs':              300,
                'learning_rate':       0.002,
                'weighted_load_cases': True,
-               'model_size':          [16, 16]}
+               'model_size':          [8, 8]}
 
-FFNN_params = {'epochs':              3000,
+FFNN_params = {'epochs':              6000,
                'learning_rate':       0.002,
                'weighted_load_cases': True,
-               'model_size':          [32, 32]}
+               'model_size':          [32,32,16]}
 ICNN_weight = train['weight'] if ICNN_params['weighted_load_cases'] else None
 FFNN_weight = train['weight'] if FFNN_params['weighted_load_cases'] else None
 
 t1 = now()
 
-num_models = 5
+num_models = 1
 ICNN_results = []
 FFNN_results = []
 for n_model in range(num_models):
@@ -60,6 +60,7 @@ for n_model in range(num_models):
     ICNN_info_string = get_info_string(ICNN_params['loss_weights'])
     tf.keras.backend.set_value(ICNN_model.optimizer.learning_rate, ICNN_params['learning_rate'])
     ICNN_h = ICNN_model.fit(train['F'], [train['P'], train['W']], 
+                            validation_data=[test['F'], [test['P'], test['W']]],
                             sample_weight = ICNN_weight,
                             epochs = ICNN_params['epochs'],  
                             verbose = 2)
@@ -67,6 +68,7 @@ for n_model in range(num_models):
     FFNN_model = mc.compile_FFNN(ns = FFNN_params['model_size'])   
     tf.keras.backend.set_value(FFNN_model.optimizer.learning_rate, FFNN_params['learning_rate'])
     FFNN_h = FFNN_model.fit(train['F'], train['P'], 
+                            validation_data=[test['F'], test['P']],
                             sample_weight = FFNN_weight,
                             epochs = FFNN_params['epochs'],  
                             verbose = 2)
@@ -83,6 +85,7 @@ for n_model in range(num_models):
                           'model': ICNN_model,
                           'info_string': ICNN_info_string,
                           'loss': ICNN_h.history['loss'],
+                          'val_loss': ICNN_h.history['val_loss'],
                           'epochs': ICNN_params['epochs'],
                           'learning_rate': ICNN_params['learning_rate'],
                           'test_loss': ICNN_test_loss,
@@ -92,6 +95,7 @@ for n_model in range(num_models):
     FFNN_model_results = {'model_number': n_model,
                           'model': FFNN_model,
                           'loss': FFNN_h.history['loss'],
+                          'val_loss': FFNN_h.history['val_loss'],
                           'epochs': FFNN_params['epochs'],
                           'learning_rate': FFNN_params['learning_rate'],
                           'test_loss': FFNN_test_loss,
@@ -102,17 +106,17 @@ t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate and evaluate the models')
 
 # %% Plot trainig losses
-plt.figure(1, dpi=600)#, figsize=(5,4))
+plt.figure(1, dpi=600, figsize=(6,4))
 for n, r in enumerate(ICNN_results):
-    label = {'label': 'ICNN losses'} if n==0 else {}
-    plt.semilogy(r['loss'], color='#F2C07D', **label)
+    plt.semilogy(r['loss'], color=dh.colors['o3'], alpha=0.8)
+    plt.semilogy(r['val_loss'], color=dh.colors['o5'], alpha=0.8)
 for n, r in enumerate(FFNN_results):
-    label = {'label': 'FFNN losses'} if n==0 else {}
-    plt.semilogy(r['loss'], color='#0B3954', **label)
+    plt.semilogy(r['loss'], color=dh.colors['b2'], alpha=0.8)
+    plt.semilogy(r['val_loss'], color=dh.colors['b4'], alpha=0.8)
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
-plt.legend()
+plt.legend(['ICNN Training loss', 'ICNN Test loss', 'FFNN Training loss', 'FFNN Test loss'])
 
 # %% Compare Training and test losses
 # This is one of the ugliest code a human has written, sorry
@@ -145,45 +149,59 @@ FFNN_loss_std = [FFNN_train_loss_std, FFNN_test_loss_std]
 
 
 x = np.arange(2)
-fig, ax = plt.subplots(dpi=600, figsize=(4,4))
-ax.bar(x-0.2, ICNN_loss_avg, yerr=ICNN_loss_std, label='ICNN loss',
-       align='center', ecolor='gray', capsize=6, width=0.4, color='#F2C07D')
-ax.bar(x+0.2, FFNN_loss_avg, yerr=FFNN_loss_std, label='FFNN loss',
-       align='center', ecolor='gray', capsize=6, width=0.4, color='#0B3954')
+fig, ax = plt.subplots(dpi=600, figsize=(3,4))
+b1 = ax.bar(x-0.2, ICNN_loss_avg, yerr=ICNN_loss_std, label='ICNN loss',
+       align='center', ecolor=dh.colors['o3'], capsize=6, width=0.4, color=dh.colors['o4'])
+b2 = ax.bar(x+0.2, FFNN_loss_avg, yerr=FFNN_loss_std, label='FFNN loss',
+       align='center', ecolor=dh.colors['b3'], capsize=6, width=0.4, color=dh.colors['b2'])
 ax.set_xticks(x, ['Training', 'Test'], zorder=3)
 ax.grid(zorder=0)
 ax.set_axisbelow(True)
-plt.xticks(rotation='vertical')
+plt.xticks(rotation='horizontal')
 plt.yscale('log')
 plt.legend(loc='upper left')
+
+# b1[1].set_color(dh.colors['o4'])
+# b2[1].set_color(dh.colors['b3'])
+
 plt.show()
 
 # %% Plot an example loadcase
 
 lc_test = random.choice(test_list)
 
-lc_model = ICNN_results[0]['model']
-ICNN_pred = {'P': lc_test['P']}
-ICNN_pred['*P'], _ = lc_model(lc_test['F'])
-ICNN_pred['*P'] = np.array(ICNN_pred['*P'])
-dh.plot_data(ICNN_pred, title=f'ICNN prediction for test load case {lc_test["load_case"]}')
+lc_icnn_model = ICNN_results[0]['model']
+lc_ffnn_model = FFNN_results[0]['model']
 
-lc_model = FFNN_results[0]['model']
+dh.plot_data(lc_test)
+
+ICNN_pred = {'P': lc_test['P']}
+ICNN_pred['*P'], _ = lc_icnn_model(lc_test['F'])
+ICNN_pred['*P'] = np.array(ICNN_pred['*P'])
+dh.plot_data(ICNN_pred, title=f'ICNN prediction for test load case {lc_test["load_case"]}',
+             tensor_kw={'legend': True}, dpi=600, figsize=(6,5))
+
 FFNN_pred = {'P': lc_test['P']}
-FFNN_pred['*P'] = lc_model(lc_test['F'])
+FFNN_pred['*P'] = lc_ffnn_model(lc_test['F'])
 FFNN_pred['*P'] = np.array(FFNN_pred['*P'])
-dh.plot_data(FFNN_pred, title=f'FFNN prediction for test load case {lc_test["load_case"]}')
+dh.plot_data(FFNN_pred, title=f'FFNN prediction for test load case {lc_test["load_case"]}',
+             tensor_kw={'legend': True}, dpi=600, figsize=(6,5))
+
 
 lc_train = random.choice(train_list)
 
+dh.plot_data(lc_train)
+
 lc_model = ICNN_results[0]['model']
 ICNN_pred = {'P': lc_train['P']}
-ICNN_pred['*P'], _ = lc_model(lc_train['F'])
+ICNN_pred['*P'], _ = lc_icnn_model(lc_train['F'])
 ICNN_pred['*P'] = np.array(ICNN_pred['*P'])
-dh.plot_data(ICNN_pred, title=f'ICNN prediction for train load case {lc_train["load_case"]}')
+dh.plot_data(ICNN_pred, title=f'ICNN prediction for train load case {lc_train["load_case"]}',
+             tensor_kw={'legend': True}, dpi=600, figsize=(6,5))
 
 lc_model = FFNN_results[0]['model']
 FFNN_pred = {'P': lc_train['P']}
-FFNN_pred['*P'] = lc_model(lc_train['F'])
+FFNN_pred['*P'] = lc_ffnn_model(lc_train['F'])
 FFNN_pred['*P'] = np.array(FFNN_pred['*P'])
-dh.plot_data(FFNN_pred, title=f'FFNN prediction for train load case {lc_train["load_case"]}')
+dh.plot_data(FFNN_pred, title=f'FFNN prediction for train load case {lc_train["load_case"]}',
+             tensor_kw={'legend': True}, dpi=600, figsize=(6,5))

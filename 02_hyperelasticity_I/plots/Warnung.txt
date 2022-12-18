@@ -1,1 +1,0 @@
-Vorsicht bei der Wheighting strategy: die Gewichte verzerren die Trainings losses!!

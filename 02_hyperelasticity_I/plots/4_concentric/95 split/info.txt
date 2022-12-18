@@ -1,0 +1,10 @@
+ICNN_params = {'loss_weights':        [1, 0],
+               'epochs':              1,
+               'learning_rate':       0.002,
+               'weighted_load_cases': True,
+               'model_size':          [16, 16]}
+
+FFNN_params = {'epochs':              10_000,
+               'learning_rate':       0.001,
+               'weighted_load_cases': True,
+               'model_size':          [16,16,16]}

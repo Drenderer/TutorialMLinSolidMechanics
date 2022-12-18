@@ -11,7 +11,7 @@ from tensorflow.linalg import det, trace, inv
 from tensorflow.math import log, square
 import numpy as np
 
-import data_handler as dh
+import data_handler_2 as dh
 
 # %% Calculate invariants
 

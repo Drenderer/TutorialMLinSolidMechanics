@@ -1,0 +1,5 @@
+model_args = {'ns': [16, 16]}
+num_models = 3
+epochs = 4000
+learning_rate = 0.005
+weighted_load_cases = True

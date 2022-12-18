@@ -31,14 +31,15 @@ def get_info_string(loss_weights):
 # %% Import data
 train = dh.load_case_data('train', concat=True, 
                           normalize_weights=True, plot=True)    # Data dict
+validataion = dh.load_case_data('test', concat=True)
 test = dh.load_case_data('all')                                 # List of Loadcase data dicts
 
 
 # %% Train multiple Models to average the results
-model_args = {'ns': [32, 32, 16]}
+model_args = {'ns': [16, 16]}
 loss_weights = [1, 1]
-num_models = 1
-epochs = 5000
+num_models = 3
+epochs = 4000
 learning_rate = 0.005
 weighted_load_cases = True
 
@@ -56,7 +57,8 @@ for n_model in range(num_models):
     
     t1 = now()    
     tf.keras.backend.set_value(model.optimizer.learning_rate, learning_rate)
-    h = model.fit(train['F'], [train['normalized P'], train['normalized W']], 
+    h = model.fit(train['F'], [train['normalized P'], train['normalized W']],
+                  validation_data=[validataion['F'], [validataion['normalized P'], validataion['normalized W']]],
                   sample_weight=weights,
                   epochs = epochs,  verbose = 2)
     t2 = now()
@@ -74,6 +76,7 @@ for n_model in range(num_models):
                      'model': model,
                      'info_string': info_string,
                      'loss': h.history['loss'],
+                     'val_loss': h.history['val_loss'],
                      'epochs': epochs,
                      'learning_rate': learning_rate,
                      'load_case_losses': load_case_losses}
@@ -81,13 +84,14 @@ for n_model in range(num_models):
     
 
 # %% Plot trainig losses
-plt.figure(1, dpi=600)#, figsize=(5,4))
+plt.figure(1, dpi=600, figsize=(6,4))
 for r in results:
-    plt.semilogy(r['loss'], label='training loss model {:d}'.format(r['model_number']))
+    plt.semilogy(r['loss'], color=dh.colors['b2'], alpha=0.8)
+    plt.semilogy(r['val_loss'], color=dh.colors['o5'], alpha=0.8)
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
-plt.legend()
+plt.legend(['Training loss', 'Test loss'])
 
 # %% Plot losses for P and W per load case 
 
@@ -110,20 +114,28 @@ for i in [1,2]:     # Loop over both loss on P second for loss on W
     std_losses.append(std)
 
 x = np.array([1,2,3,4, 6,7,8,9])
+x1 = x[:4]
+x2 = x[4:]
 fig, ax = plt.subplots(dpi=600, figsize=(4,4))
-ax.bar(x-0.2, avg_losses[0], yerr=std_losses[0], label=r'$P$ loss',
-       align='center', ecolor='black', capsize=6, width=0.4,
-       color=dh.colors['o1'])
-ax.bar(x+0.2, avg_losses[1], yerr=std_losses[1], label=r'$W$ loss',
-       align='center', ecolor='black', capsize=6, width=0.4,
-       color=dh.colors['o4'])
+ax.bar(x1-0.2, avg_losses[0][:4], yerr=std_losses[0][:4], label=r'$P$ training loss',
+       align='center', ecolor=dh.colors['b4'], capsize=4, width=0.4,
+       color=dh.colors['b2'])
+ax.bar(x1+0.2, avg_losses[1][:4], yerr=std_losses[1][:4], label=r'$W$ training loss',
+       align='center', ecolor=dh.colors['b4'], capsize=4, width=0.4,
+       color=dh.colors['b3'])
+ax.bar(x2-0.2, avg_losses[0][4:], yerr=std_losses[0][4:], label=r'$P$ test loss',
+       align='center', ecolor=dh.colors['o2'], capsize=4, width=0.4,
+       color=dh.colors['o3'])
+ax.bar(x2+0.2, avg_losses[1][4:], yerr=std_losses[1][4:], label=r'$W$ test loss',
+       align='center', ecolor=dh.colors['o3'], capsize=4, width=0.4,
+       color=dh.colors['o5'])
 ax.set_xticks(x, load_case_names, zorder=3)
 ax.grid(zorder=0)
 ax.set_axisbelow(True)
 ax.set_title('Average loss per load case')
 plt.xticks(rotation='vertical')
 plt.yscale('log')
-plt.legend(loc='upper center')
+plt.legend(loc='upper center', prop={'size': 8})
 plt.show()
 
 # %% Examine the stress / energy prediction of the model in the reference configuration F = I.
@@ -142,4 +154,4 @@ for lc in dh.files.keys():
     lc_test['*normalized P'] = np.array(lc_test['*normalized P'])
     lc_test['*normalized W'] = np.array(lc_test['*normalized W'])
     del lc_test['F'], lc_test['weight'], lc_test['W'], lc_test['P']
-    dh.plot_data(lc_test, dpi=500)
+    dh.plot_data(lc_test, tensor_kw={'legend': True}, dpi=600, figsize=(8,5))
