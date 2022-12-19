@@ -37,8 +37,9 @@ pre_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group)
 aug_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group,
-                            objectivity_group=64,
-                            reduce_to=100_000)
+                            objectivity_group=8,
+                            reduce_to=100_000
+                            )
 
 validation = dh.load_case_data('test', concat=True)
 validation = dh.augment_data(validation,
@@ -59,8 +60,8 @@ model_args = {'ns': [32, 32, 32]}
 loss_weights = [1, 1]
 precal_epochs = 150    # epochs used to train on unaugmented data before training on augmented data
 precal_learning_rate = 0.03
-epochs = 1000
-learning_rate = 0.05
+epochs = 500
+learning_rate = 0.005
 weighted_load_cases = True
 
 
@@ -107,7 +108,8 @@ weights = aug_train['weight'] if weighted_load_cases else None
 h = model.fit(aug_train['F'], [aug_train['normalized P'], aug_train['normalized W']], 
               validation_data = [validation['F'], [validation['normalized P'], validation['normalized W']]],
               sample_weight=weights,
-              epochs = epochs,  verbose = 1)
+              epochs = epochs,  verbose = 1,
+              batch_size=1024)
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
 
@@ -321,5 +323,5 @@ for j in range(3):
 plt.legend(handles=legend_elements, **tensor_kw['legend_args'])
 plt.ylabel(r'$P_{ij}$')
 plt.xlabel('load step')
-plt.title(f'32 Observer, {lc}')
+plt.title(f'8 Observer, {lc}')
 plt.show()
