@@ -29,9 +29,6 @@ def get_info_string(loss_weights):
     else:
         return 'Trained on both P and W, but differently weighted'
 
-# %% Import data
-
-train, test, train_list, test_list = dh.load_concentric(num_train_lp=95, plot=False, normalize_weights=True)
 
 # %% Train multiple Models to average the results
 ICNN_params = {'loss_weights':        [1, 0],
@@ -44,8 +41,6 @@ FFNN_params = {'epochs':              6000,
                'learning_rate':       0.002,
                'weighted_load_cases': True,
                'model_size':          [32,32,16]}
-ICNN_weight = train['weight'] if ICNN_params['weighted_load_cases'] else None
-FFNN_weight = train['weight'] if FFNN_params['weighted_load_cases'] else None
 
 t1 = now()
 
@@ -53,6 +48,11 @@ num_models = 1
 ICNN_results = []
 FFNN_results = []
 for n_model in range(num_models):
+    
+    # Import data
+    train, test, train_list, test_list = dh.load_concentric(num_train_lp=50, plot=False, normalize_weights=True)
+    ICNN_weight = train['weight'] if ICNN_params['weighted_load_cases'] else None
+    FFNN_weight = train['weight'] if FFNN_params['weighted_load_cases'] else None
     
     # Training ICNN Model
     ICNN_model = mc.compile_physics_augmented_NN(loss_weights = ICNN_params['loss_weights'],
@@ -71,7 +71,8 @@ for n_model in range(num_models):
                             validation_data=[test['F'], test['P']],
                             sample_weight = FFNN_weight,
                             epochs = FFNN_params['epochs'],  
-                            verbose = 2)
+                            verbose = 2,
+                            batch_size=512)
 
     # Evaluate Models
     ICNN_test_loss = ICNN_model.evaluate(test['F'], [test['P'], test['W']])
