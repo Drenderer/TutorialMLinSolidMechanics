@@ -1,0 +1,16 @@
+diff a/02_hyperelasticity_I/3_2_single_load_case_training.py b/02_hyperelasticity_I/3_2_single_load_case_training.py	(rejected hunks)
+@@ -34,11 +34,11 @@
+ 
+ val_loss_per_lc = {}
+ for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_test']:
+-    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=True)     # Data dict
++    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=False)     # Data dict
+     val_lc = list(set(dh.files.keys()) - set([train_on_lc]))
+-    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=True)
++    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=False)
+ 
+-    model_args = {'ns': [16, 16]}
++    model_args = {'ns': [8, 8]}
+     loss_weights = [1, 1]
+     num_models = 1
+     epochs = 3000

@@ -34,11 +34,11 @@ test = dh.load_case_data('all')         # List of Loadcase data dicts
 
 val_loss_per_lc = {}
 for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_test']:
-    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=False)     # Data dict
+    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=True)     # Data dict
     val_lc = list(set(dh.files.keys()) - set([train_on_lc]))
-    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=False)
+    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=True)
 
-    model_args = {'ns': [8, 8]}
+    model_args = {'ns': [16, 16]}
     loss_weights = [1, 1]
     num_models = 1
     epochs = 3000
