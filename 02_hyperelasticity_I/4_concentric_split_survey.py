@@ -154,6 +154,7 @@ plt.xticks(losses['splits'])
 plt.xlabel('Training split')
 plt.ylabel('log$_{10}$ MSE')
 plt.title('Losses for different splits')
+plt.legend()
 plt.grid(which='both')
 plt.show()
 
