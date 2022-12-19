@@ -10,6 +10,7 @@ Task 4 Concentric sampled deformation gradients
 import tensorflow as tf
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
 from datetime import datetime 
 now = datetime.now
 import random
@@ -109,15 +110,19 @@ print('it took', t2 - t1, '(sec) to calibrate and evaluate the models')
 # %% Plot trainig losses
 plt.figure(1, dpi=600, figsize=(6,4))
 for n, r in enumerate(ICNN_results):
-    plt.semilogy(r['loss'], color=dh.colors['o3'], alpha=0.8)
-    plt.semilogy(r['val_loss'], color=dh.colors['o5'], alpha=0.8)
+    b1 = plt.semilogy(r['loss'], color=dh.colors['o3'], alpha=0.8, label='ICNN Training loss')
+    b2 = plt.semilogy(r['val_loss'], color=dh.colors['o5'], alpha=0.8, label='ICNN Test loss')
 for n, r in enumerate(FFNN_results):
-    plt.semilogy(r['loss'], color=dh.colors['b2'], alpha=0.8)
-    plt.semilogy(r['val_loss'], color=dh.colors['b4'], alpha=0.8)
+    b3 = plt.semilogy(r['loss'], color=dh.colors['b2'], alpha=0.8, label='FFNN Training loss')
+    b4 = plt.semilogy(r['val_loss'], color=dh.colors['b4'], alpha=0.8, label='FFNN Test loss')
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
-plt.legend(['ICNN Training loss', 'ICNN Test loss', 'FFNN Training loss', 'FFNN Test loss'])
+handles = [Line2D([0], [0], color=dh.colors['o3'], alpha=0.8, label='ICNN Training loss'),
+           Line2D([0], [0], color=dh.colors['o5'], alpha=0.8, label='ICNN Test loss'),
+           Line2D([0], [0], color=dh.colors['b2'], alpha=0.8, label='FFNN Training loss'),
+           Line2D([0], [0], color=dh.colors['b4'], alpha=0.8, label='FFNN Test loss')]
+plt.legend(handles, ['ICNN Training loss', 'ICNN Test loss', 'FFNN Training loss', 'FFNN Test loss'])
 
 # %% Compare Training and test losses
 # This is one of the ugliest code a human has written, sorry
