@@ -57,10 +57,10 @@ aug_test = [dh.augment_data(t,
 # %% Train multiple Models to average the results
 model_args = {'ns': [32, 32, 32]}
 loss_weights = [1, 1]
-precal_epochs = 150    # epochs used to train on unaugmented data before training on augmented data
-precal_learning_rate = 0.03
-epochs = 1000
-learning_rate = 0.05
+precal_epochs = 300    # epochs used to train on unaugmented data before training on augmented data
+precal_learning_rate = 0.01
+epochs = 750
+learning_rate = 0.005
 weighted_load_cases = True
 
 
@@ -75,9 +75,9 @@ info_string = get_info_string(loss_weights)
 t1 = now()    
 
 try:
-    model.load_weights('./checkpoints/my_checkpoint')
+    model.load_weights('./checkpoints/my_checkpoint_2')
     
-    with open('./checkpoints/precal_losses.pkl', 'rb') as file:
+    with open('./checkpoints/precal_losses_2.pkl', 'rb') as file:
         precal_loss, precal_val_loss = pickle.load(file)
     
 except:
@@ -88,15 +88,16 @@ except:
     precal_h = model.fit(pre_train['F'], [pre_train['normalized P'], pre_train['normalized W']], 
                          validation_data = [validation['F'], [validation['normalized P'], validation['normalized W']]],
                          sample_weight=weights,
-                         epochs = precal_epochs,  verbose = 1)
+                         epochs = precal_epochs,  verbose = 1,
+                         batch_size=512)
     
     precal_loss = precal_h.history['loss']
     precal_val_loss = precal_h.history['val_loss']
     
-    with open('./checkpoints/precal_losses.pkl', 'wb') as file:
+    with open('./checkpoints/precal_losses_2.pkl', 'wb') as file:
         pickle.dump([precal_loss, precal_val_loss], file)
     
-    model.save_weights('./checkpoints/my_checkpoint')
+    model.save_weights('./checkpoints/my_checkpoint_2')
 
 
 
@@ -107,7 +108,8 @@ weights = aug_train['weight'] if weighted_load_cases else None
 h = model.fit(aug_train['F'], [aug_train['normalized P'], aug_train['normalized W']], 
               validation_data = [validation['F'], [validation['normalized P'], validation['normalized W']]],
               sample_weight=weights,
-              epochs = epochs,  verbose = 1)
+              epochs = epochs,  verbose = 1,
+              batch_size=1024)
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
 
@@ -252,74 +254,74 @@ for lc in dh.files.keys():
 # %% Check how good the model is at approximatin objectivity
 
 
-lc = 'test2'
-lc_model = results[0]['model']
-
-lc_test = dh.read_file(dh.files[lc])
-# augment data
-P_list = []
-for i in range(1000):
-    Q = dh.Rotation.random(1).as_matrix().squeeze()
-    aug_lc = dh.augment_data(lc_test, objectivity_group=[Q])
+for lc in dh.files.keys():
+    lc_model = results[0]['model']
     
-    aug_lc['*normalized P'], _ = lc_model(aug_lc['F'])
-    aug_lc['*normalized P'] = np.array(aug_lc['*normalized P'])
-    # unaugment data
-    P_list.append(Q.T @ aug_lc['*normalized P'])
-
-# for 
-colors = [dh.colors['o1'], dh.colors['o3'], dh.colors['o5'], dh.colors['b2'], dh.colors['b4']]
-plot_components = [0,4,8] #[0,4,8, 1, 3]
-
-plt.figure(1, dpi=600, figsize=(6,5))
-
-# Plot correct
-p = np.reshape(lc_test['normalized P'], (-1,9))
-p = np.take(p, plot_components, axis=1)
-for i in range(p.shape[1]):
-    c = colors[i]
-    plt.plot(p[:,i], color=c, marker='s', markevery=20, markersize=5, linewidth=2, linestyle='--')
-
-# Plot outline
-P = np.array(P_list)
-P_max = np.max(P, axis=0)
-P_min = np.min(P, axis=0)        
-P_max = np.reshape(P_max, (-1,9))
-P_max = np.take(P_max, plot_components, axis=1)
-P_min = np.reshape(P_min, (-1,9))
-P_min = np.take(P_min, plot_components, axis=1)
-for i in range(p.shape[1]):
-    c = colors[i]
-    plt.fill_between(np.arange(P_max.shape[0]), P_max[:,i], P_min[:,i], color=c, alpha=0.2)
-
-
-# For legend
-master_kw1 = {'linestyle':     '--'}
-master_kw2 = {'marker':        None,
-              'alpha':         0.7}
-tensor_kw = {(0,0): {'marker': 's', 'color': dh.colors['o1']},
-             (1,1): {'marker': 's', 'color': dh.colors['o3']},
-             (2,2): {'marker': 's', 'color': dh.colors['o5']},
-             (0,1): {'marker': 'v', 'color': dh.colors['b2']},
-             (1,0): {'marker': 'v', 'color': dh.colors['b4']},
-             'default': {'marker': 'v', 'color': 'grey'},
-             'legend': True,
-             'legend_args': {'handlelength':1, 'columnspacing': 0.8,
-                             'loc': 'upper left',
-                             'ncol': 3, 'prop': {'size': 8}}}
-default_kw = {'markevery': 20,
-              'markersize': 5,
-              'linewidth': 2}
-
-legend_elements = []
-for j in range(3):
-    for i in range(3):   
-        kw = tensor_kw.get((i,j), tensor_kw['default'])
-        kw.update({'linestyle': 'None', 'markersize': '7'})
-        legend_elements.append(Line2D([0], [0], label=f'$P_{{{i+1}{j+1}}}$', **kw))
-
-plt.legend(handles=legend_elements, **tensor_kw['legend_args'])
-plt.ylabel(r'$P_{ij}$')
-plt.xlabel('load step')
-plt.title(f'32 Observer, {lc}')
-plt.show()
+    lc_test = dh.read_file(dh.files[lc])
+    # augment data
+    P_list = []
+    for i in range(1000):
+        Q = dh.Rotation.random(1).as_matrix().squeeze()
+        aug_lc = dh.augment_data(lc_test, objectivity_group=[Q])
+        
+        aug_lc['*normalized P'], _ = lc_model(aug_lc['F'])
+        aug_lc['*normalized P'] = np.array(aug_lc['*normalized P'])
+        # unaugment data
+        P_list.append(Q.T @ aug_lc['*normalized P'])
+    
+    # for 
+    colors = [dh.colors['o1'], dh.colors['o3'], dh.colors['o5'], dh.colors['b2'], dh.colors['b4']]
+    plot_components = [0,4,8] #[0,4,8, 1, 3]
+    
+    plt.figure(1, dpi=600, figsize=(6,5))
+    
+    # Plot correct
+    p = np.reshape(lc_test['normalized P'], (-1,9))
+    p = np.take(p, plot_components, axis=1)
+    for i in range(p.shape[1]):
+        c = colors[i]
+        plt.plot(p[:,i], color=c, marker='s', markevery=20, markersize=5, linewidth=2, linestyle='--')
+    
+    # Plot outline
+    P = np.array(P_list)
+    P_max = np.max(P, axis=0)
+    P_min = np.min(P, axis=0)        
+    P_max = np.reshape(P_max, (-1,9))
+    P_max = np.take(P_max, plot_components, axis=1)
+    P_min = np.reshape(P_min, (-1,9))
+    P_min = np.take(P_min, plot_components, axis=1)
+    for i in range(p.shape[1]):
+        c = colors[i]
+        plt.fill_between(np.arange(P_max.shape[0]), P_max[:,i], P_min[:,i], color=c, alpha=0.2)
+    
+    
+    # For legend
+    master_kw1 = {'linestyle':     '--'}
+    master_kw2 = {'marker':        None,
+                  'alpha':         0.7}
+    tensor_kw = {(0,0): {'marker': 's', 'color': dh.colors['o1']},
+                 (1,1): {'marker': 's', 'color': dh.colors['o3']},
+                 (2,2): {'marker': 's', 'color': dh.colors['o5']},
+                 (0,1): {'marker': 'v', 'color': dh.colors['b2']},
+                 (1,0): {'marker': 'v', 'color': dh.colors['b4']},
+                 'default': {'marker': 'v', 'color': 'grey'},
+                 'legend': True,
+                 'legend_args': {'handlelength':1, 'columnspacing': 0.8,
+                                 'loc': 'upper left',
+                                 'ncol': 3, 'prop': {'size': 8}}}
+    default_kw = {'markevery': 20,
+                  'markersize': 5,
+                  'linewidth': 2}
+    
+    legend_elements = []
+    for j in range(3):
+        for i in range(3):   
+            kw = tensor_kw.get((i,j), tensor_kw['default'])
+            kw.update({'linestyle': 'None', 'markersize': '7'})
+            legend_elements.append(Line2D([0], [0], label=f'$P_{{{i+1}{j+1}}}$', **kw))
+    
+    plt.legend(handles=legend_elements, **tensor_kw['legend_args'])
+    plt.ylabel(r'$P_{ij}$')
+    plt.xlabel('load step')
+    plt.title(f'64 Observer, {lc}')
+    plt.show()
