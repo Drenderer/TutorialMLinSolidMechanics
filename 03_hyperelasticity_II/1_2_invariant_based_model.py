@@ -152,6 +152,6 @@ for lc in dh.files.keys():
     lc_model = results[0]['model']
     lc_test['*normalized P'], lc_test['*normalized W'] = lc_model(lc_test['F'])
     lc_test['*normalized P'] = np.array(lc_test['*normalized P'])
-    lc_test['*normalized W'] = np.array(lc_test['*normalized W'])
+    lc_test['*normalized W'] = np.array(lc_test['*normalized W']).squeeze()
     del lc_test['F'], lc_test['weight'], lc_test['W'], lc_test['P']
     dh.plot_data(lc_test, tensor_kw={'legend': True}, dpi=600, figsize=(8,5))

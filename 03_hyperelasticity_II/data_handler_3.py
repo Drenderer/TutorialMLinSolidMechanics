@@ -322,7 +322,7 @@ def load_case_data(which='all', concat=False, normalize_weights=False, plot=Fals
         
     return data
 
-def augment_data(data, symmetry_group=None, objectivity_group=None, plot=False):
+def augment_data(data, symmetry_group=None, objectivity_group=None, plot=False, reduce_to=None):
     
     if isinstance(objectivity_group, int):
         objectivity_group = Rotation.random(objectivity_group).as_matrix()
@@ -354,7 +354,14 @@ def augment_data(data, symmetry_group=None, objectivity_group=None, plot=False):
             augmented_data.append(aug_data)
             
         working_data = concatenate_data(augmented_data)
-        
+    
+    if isinstance(reduce_to, int):
+        num_datapoints = working_data['F'].shape[0]
+        random_indices = np.random.choice(np.arange(num_datapoints), size=reduce_to, replace=False)
+        for key in working_data.keys():
+            if isinstance(working_data[key], np.ndarray):
+                working_data[key] = np.array([working_data[key][i] for i in random_indices])
+    
     if plot:
         plot_data(working_data)
         

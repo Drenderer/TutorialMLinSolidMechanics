@@ -30,22 +30,19 @@ def get_info_string(loss_weights):
 # %% Import data
 train = dh.load_case_data('train', concat=True,    #['biaxial', 'shear', 'uniaxial']
                           normalize_weights=True, plot=True)        # Data dict
-test = dh.load_case_data('all')                                     # List of Loadcase data dicts
-aug_test = [dh.augment_data(t,
-                            symmetry_group=dh.cubic_group,
-                            objectivity_group=2)
-            for t in test]                                          # List of augmented data dicts for every load case
-invar_test = dh.load_case_data('test', concat=True)
-aug_invar_test = {'original': invar_test,
-                  'material symmetry augmented': dh.augment_data(invar_test, symmetry_group=dh.cubic_group),
-                  'observer augmented': dh.augment_data(invar_test, objectivity_group=2),
-                  'fully augmeted': dh.augment_data(invar_test, symmetry_group=dh.cubic_group, objectivity_group=2)}
+test = dh.load_case_data('all', concat=True)    
+aug_test = {'original': test,
+            'material symmetry augmented': dh.augment_data(test, symmetry_group=dh.cubic_group),
+            'observer augmented': dh.augment_data(test, objectivity_group=2),
+            'fully augmeted': dh.augment_data(test, symmetry_group=dh.cubic_group, objectivity_group=10)}
+
+validation = dh.load_case_data('test', concat=True)  
 
 # %% Train multiple Models to average the results
 dgbm_options = {'model_args': {'ns': [16, 16]},
                 'loss_weights': [1, 1],
                 'num_models': 1,
-                'epochs': 4000,
+                'epochs': 8000,
                 'learning_rate': 0.01,
                 'weighted_load_cases': True}
 
@@ -89,24 +86,14 @@ for arc_name, arc in arc_options.items():
         t1 = now()    
         tf.keras.backend.set_value(model.optimizer.learning_rate, learning_rate)
         h = model.fit(train['F'], [train['normalized P'], train['normalized W']], 
+                      validation_data=[validation['F'], [validation['normalized P'], validation['normalized W']]],
                       sample_weight=weights,
                       epochs = epochs,  verbose = 2)
         t2 = now()
         print('it took', t2 - t1, '(sec) to calibrate the model')
-        
-        # Evaluate Model
-        # load_case_losses = {}
-        # for t in test:
-        #     l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
-        #     load_case_losses[t['load_case']] = l
-            
-        # aug_load_case_losses = {}
-        # for t in aug_test:
-        #     l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
-        #     aug_load_case_losses[t['load_case']] = l
             
         aug_losses = {}
-        for test_case, t in aug_invar_test.items():
+        for test_case, t in aug_test.items():
             l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
             aug_losses[test_case] = l
        
@@ -116,6 +103,7 @@ for arc_name, arc in arc_options.items():
                          'model': model,
                          'info_string': info_string,
                          'loss': h.history['loss'],
+                         'val_loss': h.history['val_loss'],
                          'epochs': epochs,
                          'learning_rate': learning_rate,
                          # 'load_case_losses': load_case_losses,
@@ -127,28 +115,48 @@ for arc_name, arc in arc_options.items():
     
 
 # %% Plot trainig losses
-plt.figure(1, dpi=600)#, figsize=(5,4))
-colors = {'dgbm': dh.colors['b1'],
-          'ibm':  dh.colors['o1']}
-for arc_name, arc_r in arc_results.items():
-    color = colors[arc_name]
-    for r in arc_r:
-        plt.semilogy(r['loss'], label='{} training loss model {:d}'.format(arc_name, r['model_number']))
+# plt.figure(1, dpi=600)#, figsize=(5,4))
+# colors = {'dgbm': dh.colors['b1'],
+#           'ibm':  dh.colors['o1']}
+# for arc_name, arc_r in arc_results.items():
+#     color = colors[arc_name]
+#     for r in arc_r:
+#         plt.semilogy(r['loss'], label='{} training loss model {:d}'.format(arc_name, r['model_number']))
+# plt.grid(which='both')
+# plt.xlabel('calibration epoch')
+# plt.ylabel('log$_{10}$ MSE')
+# plt.legend()
+
+plt.figure(1, dpi=600, figsize=(6,4))
+
+for r in arc_results['ibm']:
+    plt.semilogy(r['loss'], color=dh.colors['o3'], alpha=0.8)
+    plt.semilogy(r['val_loss'], color=dh.colors['o5'], alpha=0.8)
+
+for r in arc_results['dgbm']:
+    plt.semilogy(r['loss'], color=dh.colors['b2'], alpha=0.8)
+    plt.semilogy(r['val_loss'], color=dh.colors['b4'], alpha=0.8)
+        
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
-plt.legend()
+plt.legend(['IBM Training loss', 'IBM Test loss', 'DGBM Training loss', 'DGBM Test loss'])
 
 # %% Plot losses for all combinations of augmented test data
 
-test_cases = r['aug_losses'].keys()
+aug_cases = r['aug_losses'].keys()
+
+tc_to_label = {'original': r'$\mathbf{Q}=\mathbb{1}$',
+               'material symmetry augmented': r'$\mathbf{Q}_{mat}$',
+               'observer augmented': r'$\mathbf{Q}_{obj}$',
+               'fully augmeted': r'$\mathbf{Q}_{mat}, \mathbf{Q}_{obj}$'}
 
 arc_avg = {}
 arc_std = {}
 for arc_name, arc_r in arc_results.items():
     avg = []
     std = []
-    for test_case in test_cases:
+    for test_case in aug_cases:
         loss_aggregate =  []
         for r in arc_r:
             loss_aggregate.append(r['aug_losses'][test_case][0])
@@ -159,17 +167,22 @@ for arc_name, arc_r in arc_results.items():
     arc_avg[arc_name] = avg
     arc_std[arc_name] = std
 
-x = np.arange(len(test_cases))
+x = np.arange(len(aug_cases))
 fig, ax = plt.subplots(dpi=600, figsize=(4,4))
 ax.bar(x-0.2, arc_avg['dgbm'], yerr=arc_std['dgbm'], label='Deformation Gradient based Model',
-       align='center', ecolor=dh.colors['b5'], capsize=6, width=0.4)
+       align='center', color=dh.colors['b2'], ecolor=dh.colors['b4'], capsize=6, width=0.4)
 ax.bar(x+0.2, arc_avg['ibm'], yerr=arc_std['ibm'], label='Invariant based Model',
-       align='center', ecolor=dh.colors['o1'], capsize=6, width=0.4)
-ax.set_xticks(x, test_cases, zorder=3)
+       align='center', color=dh.colors['o5'], ecolor=dh.colors['o3'], capsize=6, width=0.4)
+
+ax.set_ylim([12e-2,10e3])
+
+ax.set_xticks(x, [tc_to_label[tc] for tc in aug_cases], zorder=3)
 ax.grid(zorder=0)
 ax.set_axisbelow(True)
-ax.set_title('''Average loss per test data''')
-plt.xticks(rotation='vertical')
+ax.set_title('''Average loss''')
+plt.xticks(rotation='horizontal')
 plt.yscale('log')
 plt.legend(loc='upper left')
 plt.show()
+
+aug_cases = arc_results['dgbm'][0]['aug_losses'].keys()
