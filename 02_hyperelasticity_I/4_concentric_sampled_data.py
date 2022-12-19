@@ -44,13 +44,13 @@ FFNN_params = {'epochs':              6000,
 
 t1 = now()
 
-num_models = 1
+num_models = 5
 ICNN_results = []
 FFNN_results = []
 for n_model in range(num_models):
     
     # Import data
-    train, test, train_list, test_list = dh.load_concentric(num_train_lp=50, plot=False, normalize_weights=True)
+    train, test, train_list, test_list = dh.load_concentric(num_train_lp=80, plot=False, normalize_weights=True)
     ICNN_weight = train['weight'] if ICNN_params['weighted_load_cases'] else None
     FFNN_weight = train['weight'] if FFNN_params['weighted_load_cases'] else None
     
