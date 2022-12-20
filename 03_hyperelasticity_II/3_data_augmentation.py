@@ -30,15 +30,16 @@ def get_info_string(loss_weights):
         return 'Trained on both P and W, but differently weighted'
 
 
+num_observer = 16
+
 # %% Import data
-train = dh.load_case_data('train', concat=True, 
+train = dh.load_case_data(['shear'], concat=True, 
                           normalize_weights=True, plot=True)        # Data dict
 pre_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group)
 aug_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group,
-                            objectivity_group=8,
-                            reduce_to=100_000
+                            objectivity_group=num_observer , reduce_to=100_000
                             )
 
 validation = dh.load_case_data('test', concat=True)
@@ -58,10 +59,12 @@ aug_test = [dh.augment_data(t,
 # %% Train multiple Models to average the results
 model_args = {'ns': [32, 32, 32]}
 loss_weights = [1, 1]
-precal_epochs = 300    # epochs used to train on unaugmented data before training on augmented data
+precal_epochs = 3000    # epochs used to train on unaugmented data before training on augmented data
 precal_learning_rate = 0.01
-epochs = 750
+precal_batch_size=128
+epochs = 6000
 learning_rate = 0.005
+batch_size=256
 weighted_load_cases = True
 
 
@@ -76,9 +79,9 @@ info_string = get_info_string(loss_weights)
 t1 = now()    
 
 try:
-    model.load_weights('./checkpoints/my_checkpoint_2')
+    model.load_weights('./checkpoints/my_checkpoint_shear')
     
-    with open('./checkpoints/precal_losses_2.pkl', 'rb') as file:
+    with open('./checkpoints/precal_losses_shear.pkl', 'rb') as file:
         precal_loss, precal_val_loss = pickle.load(file)
     
 except:
@@ -90,15 +93,15 @@ except:
                          validation_data = [validation['F'], [validation['normalized P'], validation['normalized W']]],
                          sample_weight=weights,
                          epochs = precal_epochs,  verbose = 1,
-                         batch_size=512)
+                         batch_size=precal_batch_size)
     
     precal_loss = precal_h.history['loss']
     precal_val_loss = precal_h.history['val_loss']
     
-    with open('./checkpoints/precal_losses_2.pkl', 'wb') as file:
+    with open('./checkpoints/precal_losses_shear.pkl', 'wb') as file:
         pickle.dump([precal_loss, precal_val_loss], file)
     
-    model.save_weights('./checkpoints/my_checkpoint_2')
+    model.save_weights('./checkpoints/my_checkpoint_shear')
 
 
 
@@ -110,9 +113,8 @@ h = model.fit(aug_train['F'], [aug_train['normalized P'], aug_train['normalized 
               validation_data = [validation['F'], [validation['normalized P'], validation['normalized W']]],
               sample_weight=weights,
               epochs = epochs,  verbose = 1,
-              batch_size=1024)
+              batch_size=batch_size)
 t2 = now()
-print('it took', t2 - t1, '(sec) to calibrate the model')
 
 # Evaluate Model
 load_case_losses = {}
@@ -125,6 +127,7 @@ for t in aug_test:
     l = model.evaluate(t['F'], [t['normalized P'], t['normalized W']])
     aug_load_case_losses[t['load_case']] = l
    
+print('it took', t2 - t1, '(sec) to calibrate the model')
 
 # Write results
 model_results = {'model': model,
@@ -255,7 +258,7 @@ for lc in dh.files.keys():
 # %% Check how good the model is at approximatin objectivity
 
 
-for lc in dh.files.keys():
+for lc in ['shear']: #dh.files.keys():
     lc_model = results[0]['model']
     
     lc_test = dh.read_file(dh.files[lc])
@@ -324,5 +327,5 @@ for lc in dh.files.keys():
     plt.legend(handles=legend_elements, **tensor_kw['legend_args'])
     plt.ylabel(r'$P_{ij}$')
     plt.xlabel('load step')
-    plt.title(f'8 Observer, {lc}')
+    plt.title(f'{num_observer} Observer, {lc}')
     plt.show()

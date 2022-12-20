@@ -33,16 +33,17 @@ def get_info_string(loss_weights):
 test = dh.load_case_data('all')         # List of Loadcase data dicts
 
 val_loss_per_lc = {}
+val_loss_std_per_lc = {}
 for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_test']:
-    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=True)     # Data dict
+    train = dh.load_case_data([train_on_lc], concat=True, normalize_weights=True, plot=False)     # Data dict
     val_lc = list(set(dh.files.keys()) - set([train_on_lc]))
-    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=True)
+    validation = dh.load_case_data(val_lc, concat=True, normalize_weights=True, plot=False)
 
     model_args = {'ns': [16, 16]}
     loss_weights = [1, 1]
-    num_models = 1
-    epochs = 3000
-    learning_rate = 0.01
+    num_models = 5
+    epochs = 10_000
+    learning_rate = 0.003
     weighted_load_cases = True
     
     weights = train['weight'] if weighted_load_cases else None
@@ -88,6 +89,7 @@ for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_tes
 
     
     val_loss_per_lc[train_on_lc] = np.mean(final_val_loss_list)
+    val_loss_std_per_lc[train_on_lc] = np.std(final_val_loss_list)
 
 
 # %% Plot validation losses for each training load case
@@ -95,7 +97,7 @@ for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_tes
 y_pos = np.arange(len(val_loss_per_lc))
 
 fig, ax = plt.subplots(dpi=600, figsize=(6,4))
-ax.barh(y_pos, val_loss_per_lc.values())
+ax.barh(y_pos, val_loss_per_lc.values(), xerr=val_loss_std_per_lc.values())
 ax.set_yticks(y_pos, labels=val_loss_per_lc.keys(), zorder=3)
 ax.grid('both', zorder=0)
 ax.set_axisbelow(True)
