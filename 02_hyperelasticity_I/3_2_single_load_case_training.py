@@ -97,7 +97,7 @@ for train_on_lc in ['biaxial', 'pure_shear', 'uniaxial', 'biax_test', 'mixed_tes
 y_pos = np.arange(len(val_loss_per_lc))
 
 fig, ax = plt.subplots(dpi=600, figsize=(6,4))
-ax.barh(y_pos, val_loss_per_lc.values(), xerr=val_loss_std_per_lc.values())
+ax.barh(y_pos, val_loss_per_lc.values(), xerr=val_loss_std_per_lc.values(), ecolor=dh.colors['o4'], color=dh.colors['b2'], capsize=10)
 ax.set_yticks(y_pos, labels=val_loss_per_lc.keys(), zorder=3)
 ax.grid('both', zorder=0)
 ax.set_axisbelow(True)

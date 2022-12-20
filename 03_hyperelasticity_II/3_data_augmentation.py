@@ -30,7 +30,7 @@ def get_info_string(loss_weights):
         return 'Trained on both P and W, but differently weighted'
 
 
-num_observer = 16
+num_observer = 64
 
 # %% Import data
 train = dh.load_case_data(['shear'], concat=True, 
@@ -39,7 +39,7 @@ pre_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group)
 aug_train = dh.augment_data(train,
                             symmetry_group=dh.cubic_group,
-                            objectivity_group=num_observer , reduce_to=100_000
+                            objectivity_group=num_observer, reduce_to=50_000
                             )
 
 validation = dh.load_case_data('test', concat=True)

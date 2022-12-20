@@ -7,3 +7,5 @@ epochs = 6000
 learning_rate = 0.005
 batch_size=256
 weighted_load_cases = True
+
+train reduce_to=19_000
