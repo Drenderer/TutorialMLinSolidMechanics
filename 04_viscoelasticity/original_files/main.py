@@ -58,7 +58,7 @@ t1 = now()
 print(t1)
 
 tf.keras.backend.set_value(model.optimizer.learning_rate, 0.002)
-h = model.fit([eps, dts], [sig], epochs = 100,  verbose = 2)
+h = model.fit([eps, dts], [sig], epochs = 10_000,  verbose = 2)
 
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
