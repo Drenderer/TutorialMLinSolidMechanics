@@ -2,34 +2,24 @@
 Tutorial Machine Learning in Solid Mechanics (WiSe 22/23)
 Task 4: Viscoelasticity
 ==================
-Authors: Dominik K. Klein
+Authors: Fabian Roth
          
 01/2023
 """
 
 
-# %%   
-"""
-Import modules
-
-"""
+# %% Import modules
 import tensorflow as tf
 from matplotlib import pyplot as plt
 import datetime
 now = datetime.datetime.now
 
-# %% Own modules
-import data as ld
-import plots as lp
-import core_naive_RNN as hc
+import original_files.data as ld
+import original_files.plots as lp
+import models_core as mc
 
 
-# %%   
-"""
-Load and visualize data
-
-"""
-
+# %%  Generate and visualize data 
 
 E_infty = 0.5
 E = 2
@@ -43,26 +33,22 @@ eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, A
 
 lp.plot_data(eps, eps_dot, sig, omegas, As)
 
+# %% Load model
 
+model = mc.compile_RNN(model_type='gsm_model') # naive analytic_maxwell ffnn_maxwell gsm_model
 
-# %%   
-"""
-Load and evaluate model
-
-"""
-
-model = hc.main()
-
+# %% Train model
 
 t1 = now()
 print(t1)
 
-tf.keras.backend.set_value(model.optimizer.learning_rate, 0.2)
-h = model.fit([eps, dts], [sig], epochs = 1000,  verbose = 2)
+tf.keras.backend.set_value(model.optimizer.learning_rate, 0.002)
+h = model.fit([eps, dts], [sig], epochs = 4_000,  verbose = 2)
 
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
 
+# %% Plot loss
 
 plt.figure(1, dpi=600)
 plt.semilogy(h.history['loss'], label='training loss')
@@ -71,7 +57,7 @@ plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
 plt.legend()
 
-
+# %% Evalueate model
 
 eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, As)
 sig_m = model([eps, dts])
