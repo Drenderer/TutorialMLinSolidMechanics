@@ -38,7 +38,7 @@ class FFNN(tf.keras.layers.Layer):
         self.ls = [tf.keras.layers.Dense(n, activation) 
                        for n in ns[:-1]]
         if pos_constraint:
-            self.ls += [tf.keras.layers.Dense(ns[-1], 'relu', use_bias=False)]
+            self.ls += [tf.keras.layers.Dense(ns[-1], 'softplus', use_bias=False)]  # Use of solftplus, if relu in 50% of the cases no gradients 
         else:
             self.ls += [tf.keras.layers.Dense(ns[-1])]
         
