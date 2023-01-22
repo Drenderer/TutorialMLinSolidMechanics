@@ -60,10 +60,10 @@ model = mc.compile_RNN(model_type='naive_model') # naive_model analytic_maxwell 
 t1 = now()
 print(t1)
 
-tf.keras.backend.set_value(model.optimizer.learning_rate, 0.005)
+tf.keras.backend.set_value(model.optimizer.learning_rate, 0.01)
 h = model.fit([t_eps, t_dts], [t_sig],
               validation_data=([v_eps, v_dts], [v_sig]),
-              epochs = 4000,  verbose = 2)
+              epochs = 1000,  verbose = 2)
 
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
@@ -72,7 +72,7 @@ print('it took', t2 - t1, '(sec) to calibrate the model')
 
 plt.figure(1, dpi=600)
 plt.semilogy(h.history['loss'], label='training loss')
-plt.semilogy(h.history['val_loss'], label='training loss')
+plt.semilogy(h.history['val_loss'], label='validation loss')
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')

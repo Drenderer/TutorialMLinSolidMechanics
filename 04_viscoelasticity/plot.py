@@ -92,14 +92,30 @@ def plot_data(eps, eps_dot, sig, omegas, As):
     plt.show()
     
     
-def plot_model_pred(eps, sig, sig_m, omegas, As, focus_on=None):
+def plot_model_pred(eps, sig, sig_m, omegas, As, focus_on=None, title=None, training_idxs=None):
     
     kwarg_list = [{'color': color_list[i]} if (focus_on==None or i in focus_on) else greyed_kwargs for i in range(len(eps))]
+    
+    if training_idxs is not None:
+        kwarg_list = []
+        t_col = 0
+        v_col = 9
+        for i in range(len(eps)):
+            if i in training_idxs:
+                kwarg_list.append({'color': list(colors.values())[t_col]})
+                t_col += 2
+            else:
+                kwarg_list.append({'color': list(colors.values())[v_col]})
+                v_col -= 2
+        #kwarg_list = [{'color': colors['b2']} if (i in training_idxs) else {'color': colors['o5']}  for i in range(len(eps))]
+    
     n = len(eps[0])
     ns = np.linspace(0, 2*np.pi, n)
     
     fig, ax = plt.subplots(1, 2, dpi=500, figsize=(8,4))
-    fig.suptitle('Data: dashed line, model prediction: continuous line')
+    if title is None:
+        title = 'Data: dashed line, model prediction: continuous line'
+    fig.suptitle(title)
         
     for i in range(len(eps)):
                 

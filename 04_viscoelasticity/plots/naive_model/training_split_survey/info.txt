@@ -1,0 +1,18 @@
+E_infty = 0.5
+E = 2
+eta = 1
+
+n = 100
+omegas = [1,1,2]
+As = [1,2,3]
+
+
+
+eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, As)
+
+model_type='ffnn_maxwell' # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
+t_indxs = [[0], [1], [2], [0, 1], [0, 2], [1, 2]]
+num_models = 2
+
+learning_rate = 0.001
+epochs = 4000
