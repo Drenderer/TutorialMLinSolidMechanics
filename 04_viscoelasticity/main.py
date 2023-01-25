@@ -31,7 +31,7 @@ n = 100
 omegas = [1,1,2]
 As = [1,2,3]
 
-t_indx = [1]
+t_indx = [0]
 v_indx = list(set(range(len(As))) - set(t_indx))
 
 eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, As)
@@ -55,7 +55,7 @@ lp.plot_data(t_eps, t_eps_dot, t_sig, t_omegas, t_As)
 # %% Load model
 
 tf.keras.backend.clear_session()
-model = mc.compile_RNN(model_type='ffnn_maxwell') # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
+model = mc.compile_RNN(model_type='gsm_model') # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
 
 # %% Train model
 
@@ -65,7 +65,7 @@ print(t1)
 tf.keras.backend.set_value(model.optimizer.learning_rate, 0.001)
 h = model.fit([t_eps, t_dts], [t_sig],
               validation_data=([v_eps, v_dts], [v_sig]),
-              epochs = 3000,  verbose = 2)
+              epochs = 10_000,  verbose = 2)
 
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
@@ -78,6 +78,7 @@ plt.semilogy(h.history['val_loss'], label='validation loss')
 plt.grid(which='both')
 plt.xlabel('calibration epoch')
 plt.ylabel('log$_{10}$ MSE')
+plt.title('Training Loss')
 plt.legend()
 
 # %% Evalueate model on harmonic data
@@ -95,7 +96,7 @@ r_sig_m = model([r_eps, r_dts])
 lp.plot_data(r_eps, r_eps_dot, r_sig, omegas, As)
 lp.plot_model_pred(r_eps, r_sig, r_sig_m, omegas, As, focus_on=t_indx)
 lp.plot_model_pred(r_eps, r_sig, r_sig_m, omegas, As, focus_on=v_indx)
-lp.plot_model_pred(eps, sig, sig_m, omegas, As, training_idxs=t_indx)
+lp.plot_model_pred(r_eps, r_sig, r_sig_m, omegas, As, training_idxs=t_indx)
 
 # %% Calculate min and max epsilon and gamma 
 

@@ -36,59 +36,51 @@ mpl.rcParams['axes.prop_cycle'] = custom_cycler
 
 # %% Methods
 
-def plot_data(eps, eps_dot, sig, omegas, As):
+def plot_data(eps, eps_dot, sig, omegas, As, title=None):
     
     
     n = len(eps[0])
     ns = np.linspace(0, 2*np.pi, n)
     
-    plt.figure(dpi = 600, figsize = (10, 8))
+    fig, axes = plt.subplots(2, 2, dpi=500, figsize=(9, 7))
+    if title is None:
+        title = 'Training Data'
+    fig.suptitle(title)
     
-    plt.subplot(2,2,1)
-    
-    plt.title('Data')
-    
+    ax = axes[0,0]
     for i in range(len(eps)):
                 
-        plt.plot(ns, sig[i], label = '$\\omega$: %.2f, $A$: %.2f' \
+        ax.plot(ns, sig[i], label = '$\\omega$: %.2f, $A$: %.2f' \
                  %(omegas[i], As[i]), linestyle='--', color=color_list[i])
-        plt.xlim([0, 2*np.pi])
-        plt.ylabel('stress $\\sigma$')
-        plt.xlabel('time $t$')
-        plt.legend()
+        ax.set_xlim([0, 2*np.pi])
+        ax.set_ylabel('stress $\\sigma$')
+        ax.set_xlabel('time $t$')
+        ax.legend()
         
-        
-    plt.subplot(2,2,2)
-        
+    ax = axes[0,1]
     for i in range(len(eps)):
         
-        plt.plot(eps[i], sig[i], linestyle='--', color=color_list[i])
-        plt.xlabel('strain $\\varepsilon$')
-        plt.ylabel('stress $\\sigma$')
+        ax.plot(eps[i], sig[i], linestyle='--', color=color_list[i])
+        ax.set_xlabel('strain $\\varepsilon$')
+        ax.set_ylabel('stress $\\sigma$')
         
-        
-    plt.subplot(2,2,3)
-    
+    ax = axes[1,0]
     for i in range(len(eps)):
         
-        plt.plot(ns, eps[i], linestyle='--', color=color_list[i])
-        plt.xlim([0, 2*np.pi])
-        plt.xlabel('time $t$')
-        plt.ylabel('strain $\\varepsilon$')
-        
-        
-    plt.subplot(2,2,4)
+        ax.plot(ns, eps[i], linestyle='--', color=color_list[i])
+        ax.set_xlim([0, 2*np.pi])
+        ax.set_xlabel('time $t$')
+        ax.set_ylabel('strain $\\varepsilon$')
     
+    ax = axes[1,1]
     for i in range(len(eps)):
         
-        plt.plot(ns, eps_dot[i], linestyle='--', color=color_list[i])
-        plt.xlim([0, 2*np.pi])
-        plt.xlabel('time $t$')
-        plt.ylabel(r'strain rate $\.{\varepsilon}$')
+        ax.plot(ns, eps_dot[i], linestyle='--', color=color_list[i])
+        ax.set_xlim([0, 2*np.pi])
+        ax.set_xlabel('time $t$')
+        ax.set_ylabel(r'strain rate $\.{\varepsilon}$')
         
-    
-
-
+    plt.tight_layout()
     plt.show()
     
     
@@ -112,9 +104,9 @@ def plot_model_pred(eps, sig, sig_m, omegas, As, focus_on=None, title=None, trai
     n = len(eps[0])
     ns = np.linspace(0, 2*np.pi, n)
     
-    fig, ax = plt.subplots(1, 2, dpi=500, figsize=(8,4))
+    fig, ax = plt.subplots(1, 2, dpi=500, figsize=(7,4))
     if title is None:
-        title = 'Data: dashed line, model prediction: continuous line'
+        title = 'Model Prediction'
     fig.suptitle(title)
         
     for i in range(len(eps)):
