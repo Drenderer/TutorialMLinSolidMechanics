@@ -13,10 +13,12 @@ import tensorflow as tf
 from matplotlib import pyplot as plt
 import datetime
 now = datetime.datetime.now
+import numpy as np
 
 import data as ld
 import plot as lp
 import models_core as mc
+from plot_f_tilde import plot_f_tilde
 
 
 # %%  Generate and visualize data 
@@ -29,7 +31,7 @@ n = 100
 omegas = [1,1,2]
 As = [1,2,3]
 
-t_indx = [0, 2]
+t_indx = [1]
 v_indx = list(set(range(len(As))) - set(t_indx))
 
 eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, As)
@@ -53,17 +55,17 @@ lp.plot_data(t_eps, t_eps_dot, t_sig, t_omegas, t_As)
 # %% Load model
 
 tf.keras.backend.clear_session()
-model = mc.compile_RNN(model_type='naive_model') # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
+model = mc.compile_RNN(model_type='ffnn_maxwell') # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
 
 # %% Train model
 
 t1 = now()
 print(t1)
 
-tf.keras.backend.set_value(model.optimizer.learning_rate, 0.01)
+tf.keras.backend.set_value(model.optimizer.learning_rate, 0.001)
 h = model.fit([t_eps, t_dts], [t_sig],
               validation_data=([v_eps, v_dts], [v_sig]),
-              epochs = 1000,  verbose = 2)
+              epochs = 3000,  verbose = 2)
 
 t2 = now()
 print('it took', t2 - t1, '(sec) to calibrate the model')
@@ -84,6 +86,7 @@ sig_m = model([eps, dts])
 lp.plot_data(eps, eps_dot, sig, omegas, As)
 lp.plot_model_pred(eps, sig, sig_m, omegas, As, focus_on=t_indx)
 lp.plot_model_pred(eps, sig, sig_m, omegas, As, focus_on=v_indx)
+lp.plot_model_pred(eps, sig, sig_m, omegas, As, training_idxs=t_indx)
 
 # %% Evalueate model on relaxation data
 
@@ -92,3 +95,24 @@ r_sig_m = model([r_eps, r_dts])
 lp.plot_data(r_eps, r_eps_dot, r_sig, omegas, As)
 lp.plot_model_pred(r_eps, r_sig, r_sig_m, omegas, As, focus_on=t_indx)
 lp.plot_model_pred(r_eps, r_sig, r_sig_m, omegas, As, focus_on=v_indx)
+lp.plot_model_pred(eps, sig, sig_m, omegas, As, training_idxs=t_indx)
+
+# %% Calculate min and max epsilon and gamma 
+
+if model.name == 'ffnn_maxwell':
+    gamma = eps - (1/E) * (sig - E_infty*eps)
+    
+    plt.figure(dpi=400)
+    for i in range(eps.shape[0]):
+        
+        eps_min = np.min(eps[i,:,:])
+        eps_max = np.max(eps[i,:,:])
+        gamma_min = np.min(gamma[i,:,:])
+        gamma_max = np.max(gamma[i,:,:])
+        
+        print(eps_min, eps_max, gamma_min, gamma_max)
+        plt.plot(eps[i,:,0], gamma[i,:,0])
+        
+    plt.show()
+    
+    plot_f_tilde(model, eps, gamma)

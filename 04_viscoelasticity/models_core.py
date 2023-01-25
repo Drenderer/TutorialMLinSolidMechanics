@@ -117,7 +117,6 @@ class FFNNMaxwellRNNCell(tf.keras.layers.Layer):
         
         self.E_inf  = 0.5
         self.E      = 2
-        self.eta    = 1
         
         self.f_tilde = FFNN([8,8,1], pos_constraint=True)
         
@@ -151,8 +150,6 @@ class FFNNMaxwellRNNCellExtra(tf.keras.layers.Layer):
         self.E_inf  = 0.5
         self.E_1      = 2
         self.E_2      = 3
-        self.eta_1    = 1
-        self.eta_2    = 2
         
         self.f_tilde = FFNN([8,8,1], pos_constraint=True)
         
