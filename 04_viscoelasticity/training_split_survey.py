@@ -58,10 +58,10 @@ eps, eps_dot, sig, dts = ld.generate_data_harmonic(E_infty, E, eta, n, omegas, A
 
 model_type='gsm_model' # naive_model analytic_maxwell ffnn_maxwell ffnn_maxwell_extra gsm_model
 t_indxs = [[0], [1], [2], [0, 1], [0, 2], [1, 2]]
-num_models = 2
+num_models = 3
 
 learning_rate = 0.001
-epochs = 4000
+epochs = 6000
 
 results = []
 t1 = now()
@@ -156,7 +156,7 @@ ax.set_xlabel('Trainig Loadpath')
 ax.set_ylabel('log$_{10}$ MSE')
 plt.xticks(rotation='horizontal')
 plt.yscale('log')
-plt.legend(loc='upper left')
+plt.legend(loc='upper right')
 plt.show()
     
 
